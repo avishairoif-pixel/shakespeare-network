@@ -1,0 +1,1207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Topography of Silence — Network Visualizations</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&family=JetBrains+Mono:wght@300;400&display=swap');
+
+  :root {
+    --ink: #1a1510;
+    --parchment: #f5f0e8;
+    --parchment-dark: #ede5d0;
+    --gold: #b8860b;
+    --gold-light: #d4a843;
+    --crimson: #8b1a1a;
+    --crimson-light: #c0392b;
+    --steel: #4a5568;
+    --evidentiary: #2c5f2e;
+    --evidentiary-light: #4a9e4d;
+    --interpretive: #7b2d8b;
+    --interpretive-light: #a855b5;
+    --void: #888;
+    --shadow: rgba(26,21,16,0.18);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--parchment);
+    color: var(--ink);
+    font-family: 'Crimson Pro', Georgia, serif;
+    font-size: 17px;
+    line-height: 1.6;
+  }
+
+  /* PRINT STYLES */
+  @media print {
+    .nav-tabs, .tab-btn, .no-print { display: none !important; }
+    .tab-panel { display: block !important; page-break-after: always; }
+    body { background: white; font-size: 13px; }
+    .section-title { font-size: 18px; }
+    canvas, svg { max-width: 100%; }
+  }
+
+  /* HEADER */
+  header {
+    background: var(--ink);
+    color: var(--parchment);
+    padding: 48px 60px 36px;
+    border-bottom: 3px solid var(--gold);
+    position: relative;
+    overflow: hidden;
+  }
+  header::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 40px,
+      rgba(184,134,11,0.04) 40px,
+      rgba(184,134,11,0.04) 41px
+    );
+  }
+  header h1 {
+    font-family: 'IM Fell English', Georgia, serif;
+    font-size: 2.4em;
+    font-weight: 400;
+    letter-spacing: 0.02em;
+    color: var(--parchment);
+    position: relative;
+  }
+  header h1 em {
+    color: var(--gold-light);
+    font-style: italic;
+  }
+  header .subtitle {
+    font-family: 'Crimson Pro', serif;
+    font-style: italic;
+    font-size: 1.05em;
+    color: rgba(245,240,232,0.65);
+    margin-top: 8px;
+    position: relative;
+  }
+  header .meta {
+    margin-top: 20px;
+    display: flex;
+    gap: 32px;
+    position: relative;
+  }
+  header .meta-item {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72em;
+    color: var(--gold-light);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  header .meta-item span {
+    color: rgba(245,240,232,0.5);
+  }
+
+  /* NAV TABS */
+  .nav-tabs {
+    background: var(--ink);
+    display: flex;
+    gap: 0;
+    padding: 0 60px;
+    border-bottom: 2px solid var(--gold);
+  }
+  .tab-btn {
+    font-family: 'Crimson Pro', serif;
+    font-size: 0.95em;
+    letter-spacing: 0.04em;
+    color: rgba(245,240,232,0.5);
+    background: none;
+    border: none;
+    padding: 14px 24px;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    transition: all 0.2s;
+  }
+  .tab-btn:hover { color: var(--gold-light); }
+  .tab-btn.active {
+    color: var(--gold-light);
+    border-bottom-color: var(--gold);
+  }
+
+  /* MAIN */
+  main { padding: 48px 60px; max-width: 1400px; }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .section-title {
+    font-family: 'IM Fell English', serif;
+    font-size: 1.7em;
+    font-weight: 400;
+    color: var(--ink);
+    border-bottom: 1.5px solid var(--gold);
+    padding-bottom: 10px;
+    margin-bottom: 28px;
+  }
+  .section-desc {
+    font-style: italic;
+    color: var(--steel);
+    margin-bottom: 32px;
+    max-width: 700px;
+    font-size: 0.96em;
+  }
+
+  /* LEGEND */
+  .legend {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85em;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .legend-dot {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .legend-line {
+    width: 28px; height: 3px;
+    flex-shrink: 0;
+  }
+
+  /* NETWORK GRAPH */
+  #network-svg {
+    width: 100%;
+    height: 680px;
+    background: #0e0b08;
+    border-radius: 4px;
+    border: 1px solid var(--gold);
+    display: block;
+    overflow: hidden;
+  }
+  .node circle {
+    stroke-width: 2;
+    cursor: pointer;
+    transition: r 0.2s;
+  }
+  .node text {
+    font-family: 'Crimson Pro', serif;
+    font-size: 11px;
+    fill: rgba(245,240,232,0.85);
+    pointer-events: none;
+    text-shadow: 0 1px 3px #000;
+  }
+  .link { stroke-opacity: 0.55; }
+  .link.evidentiary { stroke: var(--evidentiary-light); }
+  .link.interpretive { stroke: var(--interpretive-light); stroke-dasharray: 4,3; }
+  .tooltip-net {
+    position: absolute;
+    background: var(--ink);
+    color: var(--parchment);
+    border: 1px solid var(--gold);
+    padding: 10px 14px;
+    font-family: 'Crimson Pro', serif;
+    font-size: 0.88em;
+    pointer-events: none;
+    max-width: 240px;
+    line-height: 1.5;
+    z-index: 100;
+    display: none;
+  }
+  .tooltip-net strong { color: var(--gold-light); font-size: 1.05em; }
+
+  /* DEGREE TABLE */
+  .degree-table-wrap { overflow-x: auto; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.93em;
+  }
+  thead tr {
+    background: var(--ink);
+    color: var(--parchment);
+  }
+  thead th {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78em;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 12px 16px;
+    text-align: left;
+    border-right: 1px solid rgba(245,240,232,0.1);
+  }
+  tbody tr {
+    border-bottom: 1px solid var(--parchment-dark);
+    transition: background 0.15s;
+  }
+  tbody tr:hover { background: rgba(184,134,11,0.08); }
+  tbody td {
+    padding: 10px 16px;
+    vertical-align: middle;
+  }
+  td.num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9em;
+    text-align: center;
+  }
+  .bar-cell { min-width: 180px; }
+  .bar-wrap { display: flex; align-items: center; gap: 8px; }
+  .bar {
+    height: 14px;
+    border-radius: 2px;
+    transition: width 0.4s ease;
+  }
+  .bar.evid { background: var(--evidentiary); }
+  .bar.interp { background: var(--interpretive); }
+  .bar-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78em;
+    color: var(--steel);
+    min-width: 20px;
+  }
+  .zero-badge {
+    display: inline-block;
+    background: var(--crimson);
+    color: #fff;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7em;
+    padding: 2px 7px;
+    border-radius: 2px;
+    letter-spacing: 0.06em;
+  }
+  tr.highlight-row td { background: rgba(139,26,26,0.07); }
+  tr.highlight-row td:first-child { border-left: 3px solid var(--crimson); }
+
+  /* TIMELINE */
+  #timeline-svg {
+    width: 100%;
+    overflow: visible;
+    display: block;
+  }
+
+  /* BAINES NOTE */
+  .baines-grid {
+    display: grid;
+    grid-template-columns: 200px 1fr 1fr 1fr;
+    gap: 0;
+    border: 1px solid var(--gold);
+    border-radius: 4px;
+    overflow: hidden;
+    font-size: 0.89em;
+  }
+  .baines-header {
+    background: var(--ink);
+    color: var(--gold-light);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72em;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 12px 14px;
+    border-right: 1px solid rgba(245,240,232,0.12);
+  }
+  .baines-cell {
+    padding: 14px 16px;
+    border-right: 1px solid var(--parchment-dark);
+    border-bottom: 1px solid var(--parchment-dark);
+    line-height: 1.55;
+    vertical-align: top;
+    font-style: italic;
+    color: var(--steel);
+    position: relative;
+  }
+  .baines-cell.strikethrough {
+    text-decoration: line-through;
+    color: #aaa;
+  }
+  .baines-cell.stage1 { background: rgba(44,95,46,0.07); }
+  .baines-cell.stage2 { background: rgba(123,45,139,0.07); }
+  .baines-cell.stage3 { background: rgba(139,26,26,0.07); }
+  .baines-label {
+    background: var(--parchment-dark);
+    padding: 14px 16px;
+    font-family: 'Crimson Pro', serif;
+    font-weight: 600;
+    font-size: 0.9em;
+    border-bottom: 1px solid var(--parchment-dark);
+  }
+  .stage-badge {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68em;
+    font-style: normal;
+    padding: 2px 8px;
+    border-radius: 2px;
+    letter-spacing: 0.05em;
+    margin-top: 6px;
+  }
+  .stage-badge.s1 { background: rgba(44,95,46,0.2); color: var(--evidentiary); }
+  .stage-badge.s2 { background: rgba(123,45,139,0.2); color: var(--interpretive); }
+  .stage-badge.s3 { background: rgba(139,26,26,0.2); color: var(--crimson); }
+
+  /* RESPONSIVE */
+  @media (max-width: 900px) {
+    main, header, .nav-tabs { padding-left: 20px; padding-right: 20px; }
+    .baines-grid { grid-template-columns: 1fr; }
+    .meta { flex-direction: column; gap: 8px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1><em>The Topography of Silence</em></h1>
+  <div class="subtitle">Network Visualizations — Elizabethan Intelligence-Literary Complex</div>
+  <div class="meta">
+    <div class="meta-item">Nodes <span>98</span></div>
+    <div class="meta-item">Relationships <span>152</span></div>
+    <div class="meta-item">Evidentiary <span>62</span></div>
+    <div class="meta-item">Interpretive <span>90</span></div>
+    <div class="meta-item">Isolated <span>0</span></div>
+  </div>
+</header>
+
+<div class="nav-tabs">
+  <button class="tab-btn active" onclick="showTab('network')">I. Network Graph</button>
+  <button class="tab-btn" onclick="showTab('degrees')">II. Degree Analysis</button>
+  <button class="tab-btn" onclick="showTab('timeline')">III. Chronological Timeline</button>
+  <button class="tab-btn" onclick="showTab('baines')">IV. Baines Note</button>
+  <button class="tab-btn" onclick="showTab('barchart')">V. Split-Degree Chart</button>
+  <button class="tab-btn" onclick="showTab('path')">VI. Cross-Layer Path</button>
+  <button class="tab-btn" onclick="showTab('communities')">VII. Louvain Communities</button>
+</div>
+
+<main>
+
+<!-- TAB 1: NETWORK -->
+<div id="tab-network" class="tab-panel active">
+  <h2 class="section-title">I. Network Graph — Elizabethan Intelligence-Literary Complex</h2>
+  <p class="section-desc">Force-directed graph. Green edges = Evidentiary layer (archival documentation). Purple dashed edges = Interpretive layer (theoretical hypothesis). Node size = Raw Evidence degree. Hover for details.</p>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#c0392b"></div> Intelligence</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#b8860b"></div> Aristocracy / Broker</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#2980b9"></div> Creative / Scrivener</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#555"></div> Commercial Proxy</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#5d4e75"></div> Play Node</div>
+    <div class="legend-item"><div class="legend-line" style="background:#4a9e4d"></div> Evidentiary</div>
+    <div class="legend-item"><div class="legend-line" style="background:#a855b5; background: repeating-linear-gradient(90deg,#a855b5 0,#a855b5 4px,transparent 4px,transparent 7px)"></div> Interpretive</div>
+  </div>
+  <div style="position:relative">
+    <svg id="network-svg"></svg>
+    <div class="tooltip-net" id="net-tooltip"></div>
+  </div>
+</div>
+
+<!-- TAB 2: DEGREE TABLE -->
+<div id="tab-degrees" class="tab-panel">
+  <h2 class="section-title">II. Split Degree Analysis — Evidentiary vs. Interpretive</h2>
+  <p class="section-desc">Direct output from Neo4j Split Degree query (certainty ≥ 0.7). The Stratford man's Raw Evidence degree of 0 is not archival loss — it is the structural signature of the Zero-Knowledge proxy.</p>
+  <div class="degree-table-wrap">
+    <table id="degree-table">
+      <thead>
+        <tr>
+          <th>Person</th>
+          <th>Role</th>
+          <th>Raw Evidence</th>
+          <th class="bar-cell">Evidence (bar)</th>
+          <th>Hypothesis Support</th>
+          <th class="bar-cell">Hypothesis (bar)</th>
+        </tr>
+      </thead>
+      <tbody id="degree-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- TAB 3: TIMELINE -->
+<div id="tab-timeline" class="tab-panel">
+  <h2 class="section-title">III. Chronological Timeline — Network Topology 1567–1623</h2>
+  <p class="section-desc">Key events mapped against their topological impact on the network. The 1593 Structural Rupture marks the pivot from informal cluster to Constitutive Concealment architecture.</p>
+  <svg id="timeline-svg"></svg>
+</div>
+
+<!-- TAB 4: BAINES NOTE -->
+<div id="tab-baines" class="tab-panel">
+  <h2 class="section-title">IV. The Baines Note — Three Versions, Three Editorial Stages</h2>
+  <p class="section-desc">Comparative table of the three versions of the Baines Note (May 1593). The three-stage editorial protocol (Node Decoupling → Evidence Obfuscation → Narrative Substitution) was later scaled to encompass the entire Shakespearean canon.</p>
+  <div class="baines-grid" id="baines-grid"></div>
+</div>
+
+<!-- TAB 5: SPLIT-DEGREE BAR CHART -->
+<div id="tab-barchart" class="tab-panel">
+  <h2 class="section-title">V. Split-Degree Bar Chart</h2>
+  <p class="section-desc">Each person shown as two horizontal bars: Raw Evidence (green, archival) vs. Hypothesis Support (purple, interpretive). The Stratford man's zero evidentiary bar is the structural anomaly at the heart of the study.</p>
+  <svg id="barchart-svg" style="width:100%;display:block;"></svg>
+</div>
+
+<!-- TAB 6: CROSS-LAYER SHORTEST PATH -->
+<div id="tab-path" class="tab-panel">
+  <h2 class="section-title">VI. Cross-Layer Shortest Path — The Two Architectures of Distance</h2>
+  <p class="section-desc">Two paths between Walsingham and Shaxpere. The evidentiary path (green, 4+ steps) proves the firewall's success. The cross-layer path (red, 2 steps) maps the exact institutional blueprint of the concealment operation.</p>
+  <div id="path-container" style="position:relative;">
+    <svg id="path-svg" style="width:100%;display:block;background:#0e0b08;border-radius:4px;border:1px solid var(--gold);"></svg>
+  </div>
+</div>
+
+<!-- TAB 7: LOUVAIN COMMUNITIES -->
+<div id="tab-communities" class="tab-panel">
+  <h2 class="section-title">VII. Louvain Community Detection — Modularity Score: 0.42</h2>
+  <p class="section-desc">Three distinct communities identified by the Louvain algorithm: Intelligence Network (red), Creative Workshop (blue), Acting Companies (amber). Edward de Vere is the sole node with high Betweenness Centrality bridging all three — shown at center.</p>
+  <svg id="communities-svg" style="width:100%;height:680px;display:block;background:#0e0b08;border-radius:4px;border:1px solid var(--gold);overflow:hidden;"></svg>
+</div>
+
+</main>
+
+<div class="tooltip-net" id="net-tooltip" style="position:fixed"></div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────────
+
+const nodes = [
+  { id: "Walsingham",     label: "Francis Walsingham",       role: "intelligence", raw: 9, hyp: 0,  desc: "Apex of the Elizabethan intelligence apparatus. Raw Evidence degree 9. Funded de Vere via Secret Service funds, £1,000 p.a. from 1586." },
+  { id: "deVere",         label: "Edward de Vere",            role: "broker",       raw: 5, hyp: 1,  desc: "17th Earl of Oxford. Central Betweenness broker, 99th percentile centrality. Sole node bridging Intelligence, Acting, and Creative communities." },
+  { id: "Burghley",       label: "William Cecil (Burghley)",  role: "intelligence", raw: 3, hyp: 0,  desc: "Lord Treasurer, co-architect of the Cecil apparatus. High-level policy coordination." },
+  { id: "Sidney",         label: "Philip Sidney",             role: "intelligence", raw: 1, hyp: 0,  desc: "Diplomatic and military intelligence. Nephew of Walsingham." },
+  { id: "TWalsingham",    label: "Thomas Walsingham",         role: "intelligence", raw: 2, hyp: 0,  desc: "Operational liaison, nephew of Francis. Marlowe died at his Scadbury estate." },
+  { id: "Marlowe",        label: "Christopher Marlowe",       role: "creative",     raw: 2, hyp: 1,  desc: "'Chain A' — primary bridge between School of Night and public theater. Terminated May 1593. Structural Rupture node." },
+  { id: "Kyd",            label: "Thomas Kyd",                role: "creative",     raw: 2, hyp: 0,  desc: "Employed by de Vere for 6 years. Tortured 1593. Probable author of Ur-Hamlet. Catalyzed the Kyd Mechanism." },
+  { id: "Lyly",           label: "John Lyly",                 role: "creative",     raw: 1, hyp: 1,  desc: "De Vere's personal secretary. Dominant comedic voice 1580s. Output ceased 1594 at Shakespearean brand consolidation." },
+  { id: "Munday",         label: "Anthony Munday",            role: "creative",     raw: 1, hyp: 1,  desc: "Meres (1598): 'our best plotter'. Operational foreman of the workshop. Public work confined to civic pageantry." },
+  { id: "Harriot",        label: "Thomas Harriot",            role: "creative",     raw: 2, hyp: 1,  desc: "Deep Knowledge node. Mathematician, astronomer, cartographer. Scientific data filtered into the canon via this node." },
+  { id: "Raleigh",        label: "Walter Raleigh",            role: "creative",     raw: 2, hyp: 0,  desc: "Public 'Figurehead'. High visibility, lower Betweenness Centrality than assumed. Lightning rod absorbing state scrutiny." },
+  { id: "Shaxpere",       label: "William Shakespeare (Stratford)", role: "proxy",  raw: 0, hyp: 1,  desc: "ZERO-KNOWLEDGE TERMINAL NODE. Raw Evidence degree: 0. No upstream evidentiary links to intelligence, literary, or patronage networks." },
+  { id: "Frizer",         label: "Ingram Frizer",             role: "intelligence", raw: 1, hyp: 0,  desc: "Agent present at Marlowe's death, Deptford 1593." },
+  { id: "Poley",          label: "Robert Poley",              role: "intelligence", raw: 1, hyp: 0,  desc: "Intelligence agent, present at Marlowe's death." },
+  { id: "Jonson",         label: "Ben Jonson",                role: "creative",     raw: 2, hyp: 1,  desc: "Gatekeeper of the First Folio 1623. His prefatory poem executes final Stage 3 Narrative Substitution." },
+  { id: "Herbert",        label: "William Herbert (Pembroke)", role: "broker",      raw: 1, hyp: 1,  desc: "Lord Chamberlain 1621. 'Incomparable Brethren'. De Vere bloodline link (engaged to Bridget de Vere). Authorized Folio publication." },
+  { id: "Hamlet",         label: "Hamlet",                    role: "play",         raw: 0, hyp: 1,  desc: "EVIDENTIARY VACUUM. Zero evidentiary edges. Confessional processing of 1593 Kyd/Marlowe trauma." },
+  { id: "Tempest",        label: "The Tempest",               role: "play",         raw: 0, hyp: 1,  desc: "EVIDENTIARY VACUUM. Final confession of the Architect. Prospero = de Vere. Breaking of the staff = deactivation of workshop." },
+  { id: "LLL",            label: "Love's Labour's Lost",      role: "play",         raw: 0, hyp: 1,  desc: "Document of Surrender. Performed Christmas 1593/4. Stages the collapse of the School of Night as submission to state censors." },
+  { id: "Merchant",       label: "The Merchant of Venice",    role: "play",         raw: 0, hyp: 1,  desc: "EVIDENTIARY VACUUM. Encodes network guilt over Lopez execution 1594." },
+];
+
+const links = [
+  { source: "Walsingham", target: "deVere",      layer: "evidentiary",  label: "FUNDED_VIA_SECRET_SERVICE (£1,000 p.a.)" },
+  { source: "Walsingham", target: "Burghley",    layer: "evidentiary",  label: "COORDINATED_WITH" },
+  { source: "Walsingham", target: "Sidney",      layer: "evidentiary",  label: "INTELLIGENCE_LIAISON" },
+  { source: "Walsingham", target: "TWalsingham", layer: "evidentiary",  label: "OPERATIONAL_LIAISON (nephew)" },
+  { source: "Walsingham", target: "Marlowe",     layer: "evidentiary",  label: "INTELLIGENCE_ASSET" },
+  { source: "TWalsingham",target: "Marlowe",     layer: "evidentiary",  label: "HOSTED (Scadbury)" },
+  { source: "TWalsingham",target: "Frizer",      layer: "evidentiary",  label: "EMPLOYED" },
+  { source: "Frizer",     target: "Marlowe",     layer: "evidentiary",  label: "PRESENT_AT_DEATH" },
+  { source: "Poley",      target: "Marlowe",     layer: "evidentiary",  label: "PRESENT_AT_DEATH" },
+  { source: "deVere",     target: "Lyly",        layer: "evidentiary",  label: "EMPLOYED_AS_SECRETARY" },
+  { source: "deVere",     target: "Kyd",         layer: "evidentiary",  label: "EMPLOYED (6 years)" },
+  { source: "deVere",     target: "Munday",      layer: "evidentiary",  label: "PATRON_OF" },
+  { source: "deVere",     target: "Harriot",     layer: "evidentiary",  label: "CONNECTED_TO (School)" },
+  { source: "Raleigh",    target: "Harriot",     layer: "evidentiary",  label: "PATRON_OF" },
+  { source: "Raleigh",    target: "deVere",      layer: "evidentiary",  label: "CONNECTED_TO (School of Night)" },
+  { source: "Kyd",        target: "Marlowe",     layer: "evidentiary",  label: "ASSOCIATED_WITH" },
+  { source: "Shaxpere",   target: "Jonson",      layer: "evidentiary",  label: "COMMERCIAL_ASSOCIATE" },
+  { source: "Herbert",    target: "Jonson",      layer: "evidentiary",  label: "PATRON_OF" },
+  { source: "Burghley",   target: "deVere",      layer: "evidentiary",  label: "FATHER_IN_LAW" },
+  // Interpretive
+  { source: "deVere",     target: "Shaxpere",    layer: "interpretive", label: "USED_AS_FRONTMAN" },
+  { source: "deVere",     target: "Hamlet",      layer: "interpretive", label: "ENCODED_CONFESSION_IN" },
+  { source: "deVere",     target: "Tempest",     layer: "interpretive", label: "ENCODED_AS_PROSPERO_IN" },
+  { source: "deVere",     target: "LLL",         layer: "interpretive", label: "AUTHORED (Document of Surrender)" },
+  { source: "deVere",     target: "Merchant",    layer: "interpretive", label: "ENCODED_GUILT_IN" },
+  { source: "Munday",     target: "LLL",         layer: "interpretive", label: "FUNCTIONED_AS_FOREMAN" },
+  { source: "Kyd",        target: "Hamlet",      layer: "interpretive", label: "AUTHORED_UR_HAMLET" },
+  { source: "Lyly",       target: "LLL",         layer: "interpretive", label: "STYLISTIC_TEMPLATE_FOR" },
+  { source: "Harriot",    target: "Tempest",     layer: "interpretive", label: "DEEP_KNOWLEDGE_IN" },
+  { source: "Jonson",     target: "Shaxpere",    layer: "interpretive", label: "GATEKEEPER_FOR (Folio)" },
+  { source: "Herbert",    target: "deVere",      layer: "interpretive", label: "FAMILIAL_EXECUTOR_OF" },
+  { source: "Shaxpere",   target: "Hamlet",      layer: "interpretive", label: "NOMINAL_AUTHOR" },
+];
+
+const degreeData = [
+  { name: "Francis Walsingham",           role: "Intelligence Apex",     raw: 9, hyp: 0 },
+  { name: "Edward de Vere",               role: "Betweenness Broker",    raw: 5, hyp: 1 },
+  { name: "Thomas Kyd",                   role: "Scrivener / Proxy",     raw: 2, hyp: 0 },
+  { name: "William Cecil",                role: "Policy Apex",           raw: 1, hyp: 0 },
+  { name: "Ingram Frizer",                role: "Intelligence Agent",    raw: 1, hyp: 0 },
+  { name: "Robert Poley",                 role: "Intelligence Agent",    raw: 1, hyp: 0 },
+  { name: "Nicholas Skeres",              role: "Intelligence Agent",    raw: 1, hyp: 0 },
+  { name: "John Lyly",                    role: "Secretary / Scrivener", raw: 1, hyp: 0 },
+  { name: "Anthony Munday",               role: "Workshop Foreman",      raw: 1, hyp: 0 },
+  { name: "Christopher Marlowe",          role: "Double Agent / Author", raw: 1, hyp: 0 },
+  { name: "Giordano Bruno",               role: "School of Night",       raw: 1, hyp: 0 },
+  { name: "Philip Sidney",                role: "Intelligence Liaison",  raw: 1, hyp: 0 },
+  { name: "William Herbert",              role: "Folio Patron",          raw: 1, hyp: 0 },
+  { name: "William Shakespeare (Stratford man)", role: "ZERO-KNOWLEDGE PROXY", raw: 0, hyp: 1 },
+];
+
+const timelineEvents = [
+  { year: 1586, label: "£1,000 Annuity\nto de Vere", impact: "De Vere established\nas funded Broker node", color: "#b8860b", rupture: false },
+  { year: 1591, label: "Parsons' Responsio\n(Atheism attack)", impact: "Network visibility\nexceeds safe threshold", color: "#7b2d8b", rupture: false },
+  { year: 1592, label: "Baines Note V1\nsubmitted", impact: "Edges exposed\nto state apparatus", color: "#7b2d8b", rupture: false },
+  { year: 1593, label: "KYD ARRESTED\nMARLOWE KILLED", impact: "STRUCTURAL RUPTURE\nChain A severed", color: "#8b1a1a", rupture: true },
+  { year: 1593.8, label: "Love's Labour's Lost\nperformed (Xmas)", impact: "Document of Surrender\npresented to Crown", color: "#4a5568", rupture: false },
+  { year: 1594, label: "Lucrece published\nKyd dies", impact: "Vacuum filled.\nZero-Knowledge proxy active", color: "#2c5f2e", rupture: false },
+  { year: 1598, label: "Meres: Palladis Tamia\n('best plotter')", impact: "Data leak: workshop\ninternal division exposed", color: "#4a5568", rupture: false },
+  { year: 1604, label: "Death of de Vere\nSusan de Vere marries", impact: "Transfer of intellectual\nproperty to Herbert family", color: "#b8860b", rupture: false },
+  { year: 1619, label: "Pavier Quartos\nsuppressed", impact: "Herberts controlling\ncopyright pre-Folio", color: "#4a5568", rupture: false },
+  { year: 1621, label: "Pembroke: Lord\nChamberlain", impact: "Hand-off of Authority\nover theatrical censorship", color: "#b8860b", rupture: false },
+  { year: 1623, label: "FIRST FOLIO\npublished", impact: "Transcendence.\nStage 3 permanent", color: "#2c5f2e", rupture: false },
+];
+
+const bainesData = [
+  {
+    element: "Association — Harriot Link",
+    v1: '"Heriots being Sir W Raleighs man" — explicit name of Harriot as Raleigh\'s associate',
+    v2: '"Heriots" — surname retained, Raleigh link severed',
+    v3: '[Name omitted entirely]',
+    stage: 1, stageLabel: "Stage 1: Node Decoupling"
+  },
+  {
+    element: "Mechanism — Coinage / Conspiracy",
+    v1: '"They have a meeting... vsed to counterfet... coins" — specific location and action',
+    v2: '"They have a meeting..." — location and mechanism removed',
+    v3: '"He affirmed that he hath read... contrarie to the word of God" — generalized hearsay',
+    stage: 2, stageLabel: "Stage 2: Evidence Obfuscation"
+  },
+  {
+    element: "Resolution / Conclusion",
+    v1: '[No conclusion — raw deposition]',
+    v2: '[No conclusion]',
+    v3: '"All men should endeavor to... bring him to due punishment." — approved moral verdict inserted',
+    stage: 3, stageLabel: "Stage 3: Approved Narrative"
+  },
+];
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+
+function showTab(id) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  event.currentTarget.classList.add('active');
+  if (id === 'timeline') buildTimeline();
+  if (id === 'barchart') buildBarChart();
+  if (id === 'path') buildPathDiagram();
+  if (id === 'communities') buildCommunities();
+}
+
+// ── NETWORK GRAPH ─────────────────────────────────────────────────────────────
+
+function buildNetwork() {
+  const svg = d3.select('#network-svg');
+  const W = document.getElementById('network-svg').clientWidth || 900;
+  const H = 680;
+  svg.attr('viewBox', `0 0 ${W} ${H}`);
+
+  const roleColor = {
+    intelligence: '#c0392b',
+    broker:       '#b8860b',
+    creative:     '#2980b9',
+    proxy:        '#555',
+    play:         '#5d4e75',
+  };
+
+  const nodeMap = Object.fromEntries(nodes.map(n => [n.id, {...n}]));
+  const linksCopy = links.map(l => ({...l}));
+
+  const sim = d3.forceSimulation(nodes)
+    .force('link', d3.forceLink(linksCopy).id(d => d.id).distance(d => d.layer === 'evidentiary' ? 100 : 130))
+    .force('charge', d3.forceManyBody().strength(-280))
+    .force('center', d3.forceCenter(W/2, H/2))
+    .force('collision', d3.forceCollide(d => 14 + d.raw * 3));
+
+  const linkG = svg.append('g');
+  const linkSel = linkG.selectAll('line').data(linksCopy).enter().append('line')
+    .attr('class', d => `link ${d.layer}`)
+    .attr('stroke-width', d => d.layer === 'evidentiary' ? 1.8 : 1.2);
+
+  const nodeG = svg.append('g');
+  const nodeSel = nodeG.selectAll('g').data(nodes).enter().append('g')
+    .attr('class', 'node')
+    .call(d3.drag()
+      .on('start', (event, d) => { if (!event.active) sim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+      .on('drag',  (event, d) => { d.fx = event.x; d.fy = event.y; })
+      .on('end',   (event, d) => { if (!event.active) sim.alphaTarget(0); d.fx = null; d.fy = null; })
+    );
+
+  nodeSel.append('circle')
+    .attr('r', d => 7 + d.raw * 2.5)
+    .attr('fill', d => roleColor[d.role])
+    .attr('stroke', d => d.raw === 0 ? '#ff4444' : 'rgba(245,240,232,0.3)');
+
+  nodeSel.append('text')
+    .attr('dy', d => -(8 + d.raw * 2.5))
+    .attr('text-anchor', 'middle')
+    .text(d => d.label.split(' ').slice(0,2).join(' '));
+
+  const tooltip = document.getElementById('net-tooltip');
+  nodeSel
+    .on('mouseover', (event, d) => {
+      tooltip.style.display = 'block';
+      tooltip.innerHTML = `<strong>${d.label}</strong><br><span style="color:var(--gold-light);font-style:italic">${d.desc}</span><br><br>Raw Evidence: <strong style="color:var(--evidentiary-light)">${d.raw}</strong> &#160; Hyp. Support: <strong style="color:var(--interpretive-light)">${d.hyp}</strong>`;
+    })
+    .on('mousemove', (event) => {
+      tooltip.style.left = (event.clientX + 14) + 'px';
+      tooltip.style.top  = (event.clientY - 10) + 'px';
+    })
+    .on('mouseout', () => { tooltip.style.display = 'none'; });
+
+  const pad = 40;
+  sim.on('tick', () => {
+    nodes.forEach(d => {
+      const r = 7 + d.raw * 2.5 + pad;
+      d.x = Math.max(r, Math.min(W - r, d.x));
+      d.y = Math.max(r, Math.min(H - r, d.y));
+    });
+    linkSel
+      .attr('x1', d => d.source.x).attr('y1', d => d.source.y)
+      .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+    nodeSel.attr('transform', d => `translate(${d.x},${d.y})`);
+  });
+}
+
+// ── DEGREE TABLE ──────────────────────────────────────────────────────────────
+
+function buildDegreeTable() {
+  const maxRaw = Math.max(...degreeData.map(d => d.raw));
+  const maxHyp = Math.max(...degreeData.map(d => d.hyp));
+  const tbody = document.getElementById('degree-tbody');
+  tbody.innerHTML = '';
+  degreeData.forEach(d => {
+    const isProxy = d.raw === 0 && d.hyp > 0;
+    const tr = document.createElement('tr');
+    if (isProxy) tr.classList.add('highlight-row');
+    const rawBar = `<div class="bar-wrap"><div class="bar evid" style="width:${Math.max(4, d.raw/maxRaw*160)}px"></div><span class="bar-val">${d.raw}</span></div>`;
+    const hypBar = `<div class="bar-wrap"><div class="bar interp" style="width:${Math.max(d.hyp>0?8:0, d.hyp/Math.max(maxHyp,1)*160)}px"></div><span class="bar-val">${d.hyp}</span></div>`;
+    const rawCell = d.raw === 0 ? `<span class="zero-badge">ZERO</span>` : `<code>${d.raw}</code>`;
+    tr.innerHTML = `
+      <td><strong>${d.name}</strong></td>
+      <td style="color:var(--steel);font-style:italic;font-size:0.88em">${d.role}</td>
+      <td class="num">${rawCell}</td>
+      <td class="bar-cell">${rawBar}</td>
+      <td class="num"><code>${d.hyp}</code></td>
+      <td class="bar-cell">${hypBar}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// ── TIMELINE ──────────────────────────────────────────────────────────────────
+
+function buildTimeline() {
+  const container = document.getElementById('timeline-svg');
+  const W = container.parentElement.clientWidth - 120 || 800;
+  const H = 520;
+  container.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  container.setAttribute('width', W);
+  container.setAttribute('height', H);
+
+  const svg = d3.select('#timeline-svg');
+  svg.selectAll('*').remove();
+
+  const years = timelineEvents.map(e => e.year);
+  const x = d3.scaleLinear().domain([1584, 1626]).range([80, W - 60]);
+  const midY = H / 2;
+
+  // Axis line
+  svg.append('line')
+    .attr('x1', 60).attr('y1', midY)
+    .attr('x2', W - 40).attr('y2', midY)
+    .attr('stroke', '#b8860b').attr('stroke-width', 2);
+
+  // Year ticks
+  [1586,1590,1593,1595,1600,1604,1610,1615,1620,1623].forEach(yr => {
+    svg.append('line')
+      .attr('x1', x(yr)).attr('y1', midY - 6)
+      .attr('x2', x(yr)).attr('y2', midY + 6)
+      .attr('stroke', '#b8860b').attr('stroke-width', 1);
+    svg.append('text')
+      .attr('x', x(yr)).attr('y', midY + 20)
+      .attr('text-anchor', 'middle')
+      .attr('font-family', 'JetBrains Mono, monospace')
+      .attr('font-size', 10)
+      .attr('fill', '#b8860b')
+      .text(yr);
+  });
+
+  timelineEvents.forEach((ev, i) => {
+    const cx = x(ev.year);
+    const above = i % 2 === 0;
+    const stemH = ev.rupture ? 90 : 65;
+    const labelY = above ? midY - stemH - 10 : midY + stemH + 10;
+    const impactY = above ? midY - stemH - 36 : midY + stemH + 36;
+
+    // Stem
+    svg.append('line')
+      .attr('x1', cx).attr('y1', above ? midY - 8 : midY + 8)
+      .attr('x2', cx).attr('y2', above ? midY - stemH : midY + stemH)
+      .attr('stroke', ev.color)
+      .attr('stroke-width', ev.rupture ? 2 : 1)
+      .attr('stroke-dasharray', ev.rupture ? 'none' : '3,2');
+
+    // Node circle
+    svg.append('circle')
+      .attr('cx', cx).attr('cy', midY)
+      .attr('r', ev.rupture ? 9 : 5)
+      .attr('fill', ev.color)
+      .attr('stroke', '#f5f0e8')
+      .attr('stroke-width', ev.rupture ? 2 : 1);
+
+    // Label
+    svg.append('text')
+      .attr('x', cx).attr('y', labelY)
+      .attr('text-anchor', 'middle')
+      .attr('font-family', 'Crimson Pro, serif')
+      .attr('font-size', ev.rupture ? 11 : 10)
+      .attr('font-weight', ev.rupture ? '600' : '400')
+      .attr('fill', ev.color)
+      .selectAll('tspan')
+      .data(ev.label.split('\n'))
+      .enter().append('tspan')
+      .attr('x', cx).attr('dy', (d,i) => i===0 ? 0 : 13)
+      .text(d => d);
+
+    // Impact text
+    svg.append('text')
+      .attr('x', cx).attr('y', impactY)
+      .attr('text-anchor', 'middle')
+      .attr('font-family', 'Crimson Pro, serif')
+      .attr('font-style', 'italic')
+      .attr('font-size', 9)
+      .attr('fill', '#888')
+      .selectAll('tspan')
+      .data(ev.impact.split('\n'))
+      .enter().append('tspan')
+      .attr('x', cx).attr('dy', (d,i) => i===0 ? 0 : 12)
+      .text(d => d);
+  });
+
+  // Rupture annotation
+  const rx = x(1593);
+  svg.append('rect')
+    .attr('x', rx - 42).attr('y', midY - 110)
+    .attr('width', 84).attr('height', 22)
+    .attr('fill', 'rgba(139,26,26,0.15)')
+    .attr('stroke', '#8b1a1a').attr('stroke-width', 1)
+    .attr('rx', 2);
+  svg.append('text')
+    .attr('x', rx).attr('y', midY - 94)
+    .attr('text-anchor', 'middle')
+    .attr('font-family', 'JetBrains Mono, monospace')
+    .attr('font-size', 9)
+    .attr('fill', '#8b1a1a')
+    .text('STRUCTURAL RUPTURE');
+}
+
+// ── BAINES NOTE ───────────────────────────────────────────────────────────────
+
+function buildBaines() {
+  const grid = document.getElementById('baines-grid');
+  grid.innerHTML = '';
+
+  const headers = ['Textual Element', 'Version 1 — Original Deposition', 'Version 2 — Internal Council Copy', 'Version 3 — Sanitized (for Queen)'];
+  headers.forEach(h => {
+    const div = document.createElement('div');
+    div.className = 'baines-header';
+    div.textContent = h;
+    grid.appendChild(div);
+  });
+
+  bainesData.forEach(row => {
+    const stageClass = ['', 'stage1', 'stage2', 'stage3'][row.stage];
+    const badgeClass = ['', 's1', 's2', 's3'][row.stage];
+
+    const label = document.createElement('div');
+    label.className = 'baines-label';
+    label.innerHTML = `${row.element}<br><span class="stage-badge ${badgeClass}">${row.stageLabel}</span>`;
+    grid.appendChild(label);
+
+    [row.v1, row.v2, row.v3].forEach((text, vi) => {
+      const cell = document.createElement('div');
+      cell.className = `baines-cell ${vi < 2 ? stageClass : stageClass}`;
+      if (row.stage === 1 && vi === 2) cell.classList.add('strikethrough');
+      cell.textContent = text;
+      grid.appendChild(cell);
+    });
+  });
+}
+
+// ── SPLIT-DEGREE BAR CHART ────────────────────────────────────────────────────
+
+function buildBarChart() {
+  const el = document.getElementById('barchart-svg');
+  const W = el.parentElement.clientWidth || 800;
+  const rowH = 36, padL = 220, padR = 60, padT = 40, padB = 30;
+  const H = padT + degreeData.length * rowH + padB;
+  const maxVal = 10;
+  const barW = W - padL - padR;
+
+  el.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  el.setAttribute('height', H);
+
+  const svg = d3.select('#barchart-svg');
+  svg.selectAll('*').remove();
+
+  // background
+  svg.append('rect').attr('width', W).attr('height', H).attr('fill', '#f5f0e8');
+
+  // axis line
+  svg.append('line')
+    .attr('x1', padL).attr('y1', padT - 10)
+    .attr('x2', padL).attr('y2', H - padB)
+    .attr('stroke', '#ccc').attr('stroke-width', 1);
+
+  // grid lines + tick labels
+  [0,2,4,6,8,10].forEach(v => {
+    const x = padL + (v / maxVal) * barW;
+    svg.append('line')
+      .attr('x1', x).attr('y1', padT - 10)
+      .attr('x2', x).attr('y2', H - padB)
+      .attr('stroke', '#ddd').attr('stroke-width', 1);
+    svg.append('text')
+      .attr('x', x).attr('y', padT - 14)
+      .attr('text-anchor', 'middle')
+      .attr('font-family', 'JetBrains Mono, monospace')
+      .attr('font-size', 10).attr('fill', '#888').text(v);
+  });
+
+  // legend
+  svg.append('rect').attr('x', padL + barW - 160).attr('y', 6).attr('width', 14).attr('height', 10).attr('fill', '#2c5f2e').attr('rx', 2);
+  svg.append('text').attr('x', padL + barW - 142).attr('y', 15).attr('font-family','Crimson Pro,serif').attr('font-size', 11).attr('fill','#333').text('Raw Evidence');
+  svg.append('rect').attr('x', padL + barW - 60).attr('y', 6).attr('width', 14).attr('height', 10).attr('fill', '#7b2d8b').attr('rx', 2);
+  svg.append('text').attr('x', padL + barW - 42).attr('y', 15).attr('font-family','Crimson Pro,serif').attr('font-size', 11).attr('fill','#333').text('Hypothesis');
+
+  degreeData.forEach((d, i) => {
+    const y = padT + i * rowH;
+    const isProxy = d.raw === 0 && d.hyp > 0;
+
+    // row background
+    if (isProxy) svg.append('rect').attr('x', 0).attr('y', y - 2).attr('width', W).attr('height', rowH).attr('fill', 'rgba(139,26,26,0.06)');
+    else if (i % 2 === 0) svg.append('rect').attr('x', 0).attr('y', y - 2).attr('width', W).attr('height', rowH).attr('fill', 'rgba(0,0,0,0.02)');
+
+    // name label
+    svg.append('text')
+      .attr('x', padL - 10).attr('y', y + rowH / 2 + 1)
+      .attr('text-anchor', 'end')
+      .attr('font-family', 'Crimson Pro, serif')
+      .attr('font-size', isProxy ? 12 : 11)
+      .attr('font-weight', isProxy ? '600' : '400')
+      .attr('fill', isProxy ? '#8b1a1a' : '#1a1510')
+      .text(d.name.length > 28 ? d.name.slice(0, 28) + '…' : d.name);
+
+    // evidentiary bar
+    const rawW = (d.raw / maxVal) * barW;
+    if (rawW > 0) {
+      svg.append('rect')
+        .attr('x', padL).attr('y', y + 3)
+        .attr('width', rawW).attr('height', 11)
+        .attr('fill', '#2c5f2e').attr('rx', 2);
+    }
+
+    // hypothesis bar
+    const hypW = (d.hyp / maxVal) * barW;
+    if (hypW > 0) {
+      svg.append('rect')
+        .attr('x', padL).attr('y', y + 17)
+        .attr('width', hypW).attr('height', 11)
+        .attr('fill', '#7b2d8b').attr('rx', 2);
+    }
+
+    // zero badge
+    if (d.raw === 0) {
+      svg.append('rect').attr('x', padL + 4).attr('y', y + 3).attr('width', 34).attr('height', 11).attr('fill', '#8b1a1a').attr('rx', 2);
+      svg.append('text').attr('x', padL + 21).attr('y', y + 12).attr('text-anchor','middle').attr('font-family','JetBrains Mono,monospace').attr('font-size',8).attr('fill','#fff').text('ZERO');
+    }
+
+    // value labels
+    svg.append('text')
+      .attr('x', padL + rawW + 5).attr('y', y + 13)
+      .attr('font-family','JetBrains Mono,monospace').attr('font-size',9).attr('fill','#555')
+      .text(d.raw);
+    if (d.hyp > 0) {
+      svg.append('text')
+        .attr('x', padL + hypW + 5).attr('y', y + 27)
+        .attr('font-family','JetBrains Mono,monospace').attr('font-size',9).attr('fill','#555')
+        .text(d.hyp);
+    }
+  });
+}
+
+// ── CROSS-LAYER PATH ──────────────────────────────────────────────────────────
+
+function buildPathDiagram() {
+  const el = document.getElementById('path-svg');
+  const W = el.parentElement.clientWidth || 800;
+  const H = 480;
+  el.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  el.setAttribute('height', H);
+
+  const svg = d3.select('#path-svg');
+  svg.selectAll('*').remove();
+
+  // Two sections: top = evidentiary path, bottom = cross-layer path
+  const midY = H / 2;
+
+  // Section labels
+  svg.append('text').attr('x', 20).attr('y', 36)
+    .attr('font-family','IM Fell English,serif').attr('font-size',14).attr('fill','#4a9e4d')
+    .text('Evidentiary Path (4+ steps) — The Firewall Holds');
+  svg.append('text').attr('x', 20).attr('y', midY + 36)
+    .attr('font-family','IM Fell English,serif').attr('font-size',14).attr('fill','#c0392b')
+    .text('Cross-Layer Path (2 steps) — The Blueprint Revealed');
+
+  // divider
+  svg.append('line').attr('x1',0).attr('y1',midY).attr('x2',W).attr('y2',midY)
+    .attr('stroke','rgba(245,240,232,0.1)').attr('stroke-width',1).attr('stroke-dasharray','6,4');
+
+  // ── EVIDENTIARY PATH ──
+  const evidNodes = [
+    { label: "Walsingham", sub: "Intelligence Apex", color: "#c0392b" },
+    { label: "Burghley",   sub: "Policy Liaison",    color: "#c0392b" },
+    { label: "Cecil Household", sub: "Administrative",color: "#888" },
+    { label: "Lord Chamberlain's Men", sub: "Theater Company", color: "#b8860b" },
+    { label: "Shaxpere",   sub: "Stratford Man",     color: "#555" },
+  ];
+  const evidY = midY / 2;
+  const evidSpacing = (W - 100) / (evidNodes.length - 1);
+
+  evidNodes.forEach((n, i) => {
+    const x = 50 + i * evidSpacing;
+    // connector
+    if (i < evidNodes.length - 1) {
+      const nx = 50 + (i+1) * evidSpacing;
+      svg.append('line').attr('x1', x + 28).attr('y1', evidY).attr('x2', nx - 28).attr('y2', evidY)
+        .attr('stroke','#4a9e4d').attr('stroke-width',2);
+      svg.append('text').attr('x', (x + nx)/2).attr('y', evidY - 12)
+        .attr('text-anchor','middle').attr('font-family','JetBrains Mono,monospace')
+        .attr('font-size',8).attr('fill','#4a9e4d').text('evid.');
+    }
+    // node
+    svg.append('circle').attr('cx', x).attr('cy', evidY).attr('r', 24)
+      .attr('fill', n.color).attr('stroke','rgba(245,240,232,0.3)').attr('stroke-width',1.5);
+    // label
+    const words = n.label.split(' ');
+    words.forEach((w, wi) => {
+      svg.append('text').attr('x', x).attr('y', evidY - 4 + wi * 12)
+        .attr('text-anchor','middle').attr('font-family','Crimson Pro,serif')
+        .attr('font-size', 9).attr('fill','#f5f0e8').text(w);
+    });
+    svg.append('text').attr('x', x).attr('y', evidY + 38)
+      .attr('text-anchor','middle').attr('font-family','Crimson Pro,serif').attr('font-style','italic')
+      .attr('font-size', 9).attr('fill','rgba(245,240,232,0.45)').text(n.sub);
+  });
+
+  // step count annotation
+  svg.append('rect').attr('x', W/2 - 70).attr('y', evidY - 55).attr('width', 140).attr('height', 22)
+    .attr('fill','rgba(74,158,77,0.15)').attr('stroke','#4a9e4d').attr('stroke-width',1).attr('rx',2);
+  svg.append('text').attr('x', W/2).attr('y', evidY - 39).attr('text-anchor','middle')
+    .attr('font-family','JetBrains Mono,monospace').attr('font-size',10).attr('fill','#4a9e4d')
+    .text('DISTANCE: 4+ STEPS = PLAUSIBLE DENIABILITY');
+
+  // ── CROSS-LAYER PATH ──
+  const crossNodes = [
+    { label: "Walsingham", sub: "Intelligence Apex", color: "#c0392b", layer: "evid" },
+    { label: "de Vere",    sub: "Betweenness Broker", color: "#b8860b", layer: "cross" },
+    { label: "Shaxpere",   sub: "Zero-Knowledge Proxy", color: "#555", layer: "interp" },
+  ];
+  const crossY = midY + midY / 2;
+  const crossSpacing = W / 4;
+
+  crossNodes.forEach((n, i) => {
+    const x = crossSpacing + i * crossSpacing;
+    if (i < crossNodes.length - 1) {
+      const nx = crossSpacing + (i+1) * crossSpacing;
+      const isInterp = i === 1;
+      svg.append('line').attr('x1', x + 32).attr('y1', crossY).attr('x2', nx - 32).attr('y2', crossY)
+        .attr('stroke', isInterp ? '#a855b5' : '#c0392b')
+        .attr('stroke-width', 2.5)
+        .attr('stroke-dasharray', isInterp ? '5,3' : 'none');
+      svg.append('text').attr('x',(x+nx)/2).attr('y', crossY - 14)
+        .attr('text-anchor','middle').attr('font-family','JetBrains Mono,monospace')
+        .attr('font-size',9).attr('fill', isInterp ? '#a855b5' : '#4a9e4d')
+        .text(isInterp ? 'INTERPRETIVE' : 'EVIDENTIARY');
+      // step label
+      svg.append('text').attr('x',(x+nx)/2).attr('y', crossY + 50)
+        .attr('text-anchor','middle').attr('font-family','Crimson Pro,serif').attr('font-style','italic')
+        .attr('font-size',10).attr('fill','rgba(245,240,232,0.5)')
+        .text(i === 0 ? 'Step 1: £1,000 Secret Service funds' : 'Step 2: Commercial proxy deployment');
+    }
+    // node
+    svg.append('circle').attr('cx', x).attr('cy', crossY).attr('r', 30)
+      .attr('fill', n.color).attr('stroke', n.color === '#b8860b' ? '#d4a843' : 'rgba(245,240,232,0.3)')
+      .attr('stroke-width', n.color === '#b8860b' ? 3 : 1.5);
+    const words = n.label.split(' ');
+    words.forEach((w, wi) => {
+      svg.append('text').attr('x', x).attr('y', crossY - 4 + wi * 13)
+        .attr('text-anchor','middle').attr('font-family','Crimson Pro,serif')
+        .attr('font-size', 11).attr('fill','#f5f0e8').text(w);
+    });
+    svg.append('text').attr('x', x).attr('y', crossY + 44)
+      .attr('text-anchor','middle').attr('font-family','Crimson Pro,serif').attr('font-style','italic')
+      .attr('font-size', 9).attr('fill','rgba(245,240,232,0.5)').text(n.sub);
+  });
+
+  // 2-step annotation
+  svg.append('rect').attr('x', W/2 - 80).attr('y', crossY - 72).attr('width', 160).attr('height', 22)
+    .attr('fill','rgba(139,26,26,0.2)').attr('stroke','#8b1a1a').attr('stroke-width',1).attr('rx',2);
+  svg.append('text').attr('x', W/2).attr('y', crossY - 56).attr('text-anchor','middle')
+    .attr('font-family','JetBrains Mono,monospace').attr('font-size',10).attr('fill','#c0392b')
+    .text('DISTANCE: 2 STEPS = INSTITUTIONAL BLUEPRINT');
+}
+
+// ── LOUVAIN COMMUNITIES ───────────────────────────────────────────────────────
+
+function buildCommunities() {
+  const el = document.getElementById('communities-svg');
+  const W = el.parentElement.clientWidth || 900;
+  const H = 680;
+  el.setAttribute('viewBox', `0 0 ${W} ${H}`);
+
+  const communities = {
+    intelligence: {
+      label: "Intelligence Network",
+      color: "#c0392b",
+      fill: "rgba(192,57,43,0.08)",
+      nodes: [
+        { id:"cWalsingham", label:"Francis Walsingham", r:22, x: W*0.18, y: H*0.22 },
+        { id:"cBurghley",   label:"William Cecil",      r:12, x: W*0.10, y: H*0.38 },
+        { id:"cSidney",     label:"Philip Sidney",      r:10, x: W*0.26, y: H*0.35 },
+        { id:"cTWals",      label:"Thomas Walsingham",  r:11, x: W*0.14, y: H*0.52 },
+        { id:"cFrizer",     label:"Ingram Frizer",      r:8,  x: W*0.06, y: H*0.58 },
+        { id:"cPoley",      label:"Robert Poley",       r:8,  x: W*0.20, y: H*0.62 },
+      ]
+    },
+    creative: {
+      label: "Creative Workshop",
+      color: "#2980b9",
+      fill: "rgba(41,128,185,0.08)",
+      nodes: [
+        { id:"cMarlowe",  label:"Christopher Marlowe", r:14, x: W*0.62, y: H*0.22 },
+        { id:"cKyd",      label:"Thomas Kyd",          r:13, x: W*0.74, y: H*0.30 },
+        { id:"cLyly",     label:"John Lyly",           r:10, x: W*0.82, y: H*0.20 },
+        { id:"cMunday",   label:"Anthony Munday",      r:10, x: W*0.88, y: H*0.38 },
+        { id:"cHarriot",  label:"Thomas Harriot",      r:12, x: W*0.76, y: H*0.48 },
+        { id:"cRaleigh",  label:"Walter Raleigh",      r:11, x: W*0.66, y: H*0.40 },
+        { id:"cJonson",   label:"Ben Jonson",          r:11, x: W*0.84, y: H*0.55 },
+      ]
+    },
+    acting: {
+      label: "Acting Companies / Proxy",
+      color: "#b8860b",
+      fill: "rgba(184,134,11,0.08)",
+      nodes: [
+        { id:"cShaxpere", label:"Shaxpere (Stratford)", r:10, x: W*0.62, y: H*0.72 },
+        { id:"cHerbert",  label:"William Herbert",      r:10, x: W*0.74, y: H*0.80 },
+        { id:"cHamlet",   label:"Hamlet",               r:9,  x: W*0.52, y: H*0.80 },
+        { id:"cTempest",  label:"The Tempest",          r:9,  x: W*0.82, y: H*0.72 },
+        { id:"cLLL",      label:"Love's Labour's Lost", r:9,  x: W*0.88, y: H*0.82 },
+      ]
+    }
+  };
+
+  // de Vere — central bridge
+  const deVere = { id:"cDeVere", label:"Edward de Vere", r:28, x: W*0.45, y: H*0.48 };
+
+  const svg = d3.select('#communities-svg');
+  svg.selectAll('*').remove();
+
+  // Community blobs
+  Object.entries(communities).forEach(([key, comm]) => {
+    const xs = comm.nodes.map(n=>n.x);
+    const ys = comm.nodes.map(n=>n.y);
+    const minX = Math.min(...xs) - 60, maxX = Math.max(...xs) + 60;
+    const minY = Math.min(...ys) - 60, maxY = Math.max(...ys) + 60;
+    svg.append('rect')
+      .attr('x', minX).attr('y', minY)
+      .attr('width', maxX-minX).attr('height', maxY-minY)
+      .attr('fill', comm.fill).attr('stroke', comm.color)
+      .attr('stroke-width', 1.5).attr('stroke-dasharray','6,4').attr('rx',20);
+    svg.append('text').attr('x', minX+12).attr('y', minY+20)
+      .attr('font-family','JetBrains Mono,monospace').attr('font-size',10)
+      .attr('fill',comm.color).attr('letter-spacing','0.06em')
+      .text(comm.label.toUpperCase());
+  });
+
+  // Edges from de Vere to each community
+  const bridgeTargets = [
+    communities.intelligence.nodes[0],
+    communities.creative.nodes[0],
+    communities.acting.nodes[0],
+  ];
+  bridgeTargets.forEach(t => {
+    svg.append('line')
+      .attr('x1',deVere.x).attr('y1',deVere.y)
+      .attr('x2',t.x).attr('y2',t.y)
+      .attr('stroke','#d4a843').attr('stroke-width',2.5)
+      .attr('stroke-dasharray','8,4').attr('stroke-opacity',0.7);
+  });
+
+  // Internal community edges (sample)
+  [
+    [communities.intelligence.nodes[0], communities.intelligence.nodes[1]],
+    [communities.intelligence.nodes[0], communities.intelligence.nodes[2]],
+    [communities.intelligence.nodes[0], communities.intelligence.nodes[3]],
+    [communities.intelligence.nodes[3], communities.intelligence.nodes[4]],
+    [communities.intelligence.nodes[3], communities.intelligence.nodes[5]],
+    [communities.creative.nodes[0], communities.creative.nodes[1]],
+    [communities.creative.nodes[0], communities.creative.nodes[5]],
+    [communities.creative.nodes[1], communities.creative.nodes[2]],
+    [communities.creative.nodes[2], communities.creative.nodes[3]],
+    [communities.creative.nodes[4], communities.creative.nodes[5]],
+    [communities.creative.nodes[3], communities.creative.nodes[6]],
+    [communities.acting.nodes[0], communities.acting.nodes[1]],
+    [communities.acting.nodes[0], communities.acting.nodes[2]],
+    [communities.acting.nodes[1], communities.acting.nodes[3]],
+  ].forEach(([a,b]) => {
+    svg.append('line')
+      .attr('x1',a.x).attr('y1',a.y).attr('x2',b.x).attr('y2',b.y)
+      .attr('stroke','rgba(245,240,232,0.15)').attr('stroke-width',1);
+  });
+
+  // Draw all community nodes
+  Object.entries(communities).forEach(([key, comm]) => {
+    comm.nodes.forEach(n => {
+      svg.append('circle').attr('cx',n.x).attr('cy',n.y).attr('r',n.r)
+        .attr('fill',comm.color).attr('stroke','rgba(245,240,232,0.3)').attr('stroke-width',1.5);
+      svg.append('text').attr('x',n.x).attr('y',n.y - n.r - 5)
+        .attr('text-anchor','middle').attr('font-family','Crimson Pro,serif')
+        .attr('font-size',9).attr('fill','rgba(245,240,232,0.7)').text(n.label);
+    });
+  });
+
+  // de Vere — draw last so it's on top
+  const glowR = deVere.r + 10;
+  svg.append('circle').attr('cx',deVere.x).attr('cy',deVere.y).attr('r',glowR)
+    .attr('fill','none').attr('stroke','#d4a843').attr('stroke-width',1.5)
+    .attr('stroke-dasharray','4,3').attr('opacity',0.6);
+  svg.append('circle').attr('cx',deVere.x).attr('cy',deVere.y).attr('r',deVere.r)
+    .attr('fill','#b8860b').attr('stroke','#d4a843').attr('stroke-width',3);
+  svg.append('text').attr('x',deVere.x).attr('y',deVere.y-4)
+    .attr('text-anchor','middle').attr('font-family','Crimson Pro,serif')
+    .attr('font-size',11).attr('fill','#f5f0e8').text('Edward');
+  svg.append('text').attr('x',deVere.x).attr('y',deVere.y+10)
+    .attr('text-anchor','middle').attr('font-family','Crimson Pro,serif')
+    .attr('font-size',11).attr('fill','#f5f0e8').text('de Vere');
+  svg.append('text').attr('x',deVere.x).attr('y',deVere.y+deVere.r+16)
+    .attr('text-anchor','middle').attr('font-family','JetBrains Mono,monospace')
+    .attr('font-size',8).attr('fill','#d4a843').text('99th %ile BETWEENNESS');
+
+  // Modularity annotation
+  svg.append('rect').attr('x',12).attr('y',H-38).attr('width',220).attr('height',26)
+    .attr('fill','rgba(26,21,16,0.7)').attr('stroke','#b8860b').attr('stroke-width',1).attr('rx',3);
+  svg.append('text').attr('x',22).attr('y',H-21)
+    .attr('font-family','JetBrains Mono,monospace').attr('font-size',10).attr('fill','#d4a843')
+    .text('Louvain Modularity Score: 0.42');
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+
+buildNetwork();
+buildDegreeTable();
+buildBaines();
+</script>
+</body>
+</html>
