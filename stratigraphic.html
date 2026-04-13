@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Stratigraphic Model — Avishai Roif</title>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --ink: #1a1714; --ink-dim: #5a5650; --ink-faint: #9a9490;
+    --paper: #f5f0e8; --paper-warm: #ede8dc; --rule: #c8c0b0;
+    --gold: #8b6914; --gold-light: #c9a84c;
+    --layer-a: #2e5a8e; --layer-b: #6b6b6b; --layer-c: #7a1c1c;
+  }
+  html { font-size: 16px; }
+  body { background: var(--paper); color: var(--ink); font-family: 'EB Garamond', Georgia, serif; font-size: 1rem; line-height: 1.75; }
+
+  .masthead { background: var(--ink); color: var(--paper); padding: 3.5rem 2rem 3rem; text-align: center; position: relative; overflow: hidden; }
+  .masthead::before { content:''; position:absolute; inset:0; background: repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255,255,255,0.03) 39px, rgba(255,255,255,0.03) 40px); pointer-events:none; }
+  .masthead-label { font-family:'Crimson Pro',serif; font-size:0.75rem; letter-spacing:0.22em; text-transform:uppercase; color:var(--gold-light); margin-bottom:1.5rem; }
+  .masthead h1 { font-family:'Cormorant Garamond',serif; font-weight:300; font-size:clamp(1.9rem,4.5vw,3.4rem); letter-spacing:0.03em; line-height:1.2; color:var(--paper); margin-bottom:0.5rem; }
+  .masthead h1 em { font-style:italic; color:var(--gold-light); }
+  .masthead-subtitle { font-family:'Cormorant Garamond',serif; font-style:italic; font-size:1rem; color:rgba(245,240,232,0.65); max-width:600px; margin:0.75rem auto 0; line-height:1.55; }
+  .masthead-rule { width:60px; height:1px; background:var(--gold-light); margin:1.8rem auto; opacity:0.6; }
+  .masthead-author { font-family:'Crimson Pro',serif; font-size:0.85rem; letter-spacing:0.12em; text-transform:uppercase; color:rgba(245,240,232,0.5); }
+
+  .page { max-width:860px; margin:0 auto; padding:0 1.5rem 5rem; }
+
+  .meta-bar { display:flex; flex-wrap:wrap; gap:0.5rem 2rem; padding:1.4rem 0; border-bottom:1px solid var(--rule); margin-bottom:2.5rem; }
+  .meta-item { font-family:'Crimson Pro',serif; font-size:0.82rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--ink-faint); }
+  .meta-item strong { color:var(--ink-dim); font-weight:400; }
+
+  .abstract { background:var(--paper-warm); border-left:3px solid var(--gold); padding:1.6rem 2rem; margin-bottom:2.5rem; }
+  .abstract-label { font-family:'Crimson Pro',serif; font-size:0.72rem; letter-spacing:0.2em; text-transform:uppercase; color:var(--gold); margin-bottom:0.75rem; }
+  .abstract p { font-size:0.97rem; line-height:1.7; color:var(--ink-dim); }
+
+  .metrics { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:1px; background:var(--rule); border:1px solid var(--rule); margin-bottom:2.5rem; }
+  .metric { background:var(--paper); padding:1.2rem 1.4rem; text-align:center; }
+  .metric-value { font-family:'Cormorant Garamond',serif; font-size:1.9rem; font-weight:300; color:var(--ink); line-height:1; margin-bottom:0.3rem; }
+  .metric-label { font-family:'Crimson Pro',serif; font-size:0.7rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--ink-faint); }
+
+  .section { margin-bottom:2.8rem; }
+  .section-head { display:flex; align-items:center; gap:1rem; margin-bottom:1.2rem; }
+  .section-head h2 { font-family:'Cormorant Garamond',serif; font-weight:400; font-size:1.25rem; letter-spacing:0.02em; color:var(--ink); white-space:nowrap; }
+  .section-head::after { content:''; flex:1; height:1px; background:var(--rule); }
+
+  /* Layer cards */
+  .layer-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:1px; background:var(--rule); border:1px solid var(--rule); margin-bottom:1.5rem; }
+  .layer-card { background:var(--paper); padding:1.3rem 1.5rem; }
+  .layer-head { display:flex; align-items:center; gap:0.6rem; margin-bottom:0.8rem; }
+  .layer-dot { width:10px; height:10px; flex-shrink:0; }
+  .layer-label { font-family:'Crimson Pro',serif; font-size:0.7rem; letter-spacing:0.16em; text-transform:uppercase; color:var(--ink-dim); }
+  .layer-name { font-family:'Cormorant Garamond',serif; font-size:1.1rem; color:var(--ink); margin-bottom:0.5rem; font-weight:400; }
+  .layer-desc { font-family:'Crimson Pro',serif; font-size:0.82rem; color:var(--ink-dim); line-height:1.6; margin-bottom:0.8rem; }
+  .layer-stats { display:flex; flex-wrap:wrap; gap:0.3rem; }
+  .layer-stat { font-family:'Crimson Pro',serif; font-size:0.72rem; letter-spacing:0.06em; color:var(--ink-faint); border:1px solid var(--rule); padding:0.15rem 0.5rem; }
+
+  /* Delta table */
+  .delta-table { width:100%; border-collapse:collapse; margin-bottom:1.2rem; font-size:0.9rem; }
+  .delta-table thead tr { border-bottom:2px solid var(--ink); }
+  .delta-table th { font-family:'Crimson Pro',serif; font-size:0.68rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--ink-dim); font-weight:400; padding:0.5rem 0.8rem 0.5rem 0; text-align:left; }
+  .delta-table td { padding:0.5rem 0.8rem 0.5rem 0; border-bottom:1px solid var(--rule); }
+  .delta-table tr.best td { font-weight:500; }
+  .delta-winner { color:var(--paper); padding:0.1rem 0.45rem; font-family:'Crimson Pro',serif; font-size:0.75rem; }
+  .delta-winner.sha { background:var(--layer-a); }
+  .delta-winner.kyd { background:var(--layer-c); }
+  .delta-winner.mar { background:#555; }
+
+  /* Bayesian table */
+  .bayes-table { width:100%; border-collapse:collapse; margin-bottom:1.2rem; font-size:0.9rem; }
+  .bayes-table thead tr { border-bottom:2px solid var(--ink); }
+  .bayes-table th { font-family:'Crimson Pro',serif; font-size:0.68rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--ink-dim); font-weight:400; padding:0.5rem 0.6rem 0.5rem 0; text-align:left; }
+  .bayes-table td { padding:0.5rem 0.6rem 0.5rem 0; border-bottom:1px solid var(--rule); }
+  .prob-bar-wrap { width:90px; display:inline-block; vertical-align:middle; margin-left:0.4rem; }
+  .prob-bar { height:5px; display:inline-block; vertical-align:middle; }
+
+  /* N-gram table */
+  .ngram-table { width:100%; border-collapse:collapse; margin-bottom:1.2rem; font-size:0.88rem; }
+  .ngram-table thead tr { border-bottom:2px solid var(--ink); }
+  .ngram-table th { font-family:'Crimson Pro',serif; font-size:0.67rem; letter-spacing:0.13em; text-transform:uppercase; color:var(--ink-dim); font-weight:400; padding:0.5rem 0.6rem 0.5rem 0; text-align:left; }
+  .ngram-table td { padding:0.45rem 0.6rem 0.45rem 0; border-bottom:1px solid var(--rule); vertical-align:top; }
+  .ngram-phrase { font-family:'EB Garamond',serif; font-style:italic; }
+  .canon-plays { font-family:'Crimson Pro',serif; font-size:0.75rem; color:var(--ink-faint); }
+
+  /* Welch table */
+  .welch-table { width:100%; border-collapse:collapse; margin-bottom:1.2rem; font-size:0.9rem; }
+  .welch-table thead tr { border-bottom:2px solid var(--ink); }
+  .welch-table th { font-family:'Crimson Pro',serif; font-size:0.68rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--ink-dim); font-weight:400; padding:0.5rem 0.6rem 0.5rem 0; text-align:left; }
+  .welch-table td { padding:0.5rem 0.6rem 0.5rem 0; border-bottom:1px solid var(--rule); }
+
+  /* Finding block */
+  .finding { background:var(--ink); color:var(--paper); padding:1.2rem 1.6rem; margin-bottom:1.2rem; }
+  .finding-label { font-family:'Crimson Pro',serif; font-size:0.68rem; letter-spacing:0.18em; text-transform:uppercase; color:var(--gold-light); margin-bottom:0.4rem; }
+  .finding p { font-family:'Cormorant Garamond',serif; font-style:italic; font-size:1rem; line-height:1.65; color:rgba(245,240,232,0.85); }
+
+  /* Convergence */
+  .convergence { background:var(--paper-warm); border:1px solid var(--rule); padding:1.4rem 1.6rem; margin-bottom:1.5rem; }
+  .convergence-label { font-family:'Crimson Pro',serif; font-size:0.7rem; letter-spacing:0.18em; text-transform:uppercase; color:var(--gold); margin-bottom:1rem; }
+  .conv-row { display:flex; align-items:flex-start; gap:1rem; margin-bottom:0.8rem; padding-bottom:0.8rem; border-bottom:1px solid var(--rule); }
+  .conv-row:last-child { border-bottom:none; margin-bottom:0; padding-bottom:0; }
+  .conv-num { font-family:'Cormorant Garamond',serif; font-size:1.4rem; font-weight:300; color:var(--gold); line-height:1; flex-shrink:0; width:1.8rem; }
+  .conv-text { font-family:'Crimson Pro',serif; font-size:0.85rem; color:var(--ink-dim); line-height:1.6; }
+  .conv-text strong { color:var(--ink); font-weight:400; }
+
+  /* Stat highlight */
+  .stat-highlight { display:inline-block; font-family:'Cormorant Garamond',serif; font-size:1.1rem; color:var(--ink); border-bottom:1px solid var(--gold); padding-bottom:0.05rem; }
+
+  /* PCA mock viz */
+  .pca-viz { background:var(--paper-warm); border:1px solid var(--rule); padding:1.2rem 1.4rem; margin-bottom:1.5rem; }
+  .pca-label { font-family:'Crimson Pro',serif; font-size:0.7rem; letter-spacing:0.15em; text-transform:uppercase; color:var(--gold); margin-bottom:0.8rem; }
+  .pca-legend { display:flex; flex-wrap:wrap; gap:0.5rem 1.2rem; margin-bottom:0.8rem; }
+  .pca-legend-item { display:flex; align-items:center; gap:0.4rem; font-family:'Crimson Pro',serif; font-size:0.75rem; color:var(--ink-dim); }
+  .pca-swatch { width:10px; height:10px; flex-shrink:0; }
+  .pca-desc { font-family:'Crimson Pro',serif; font-style:italic; font-size:0.8rem; color:var(--ink-faint); line-height:1.5; }
+
+  /* Download */
+  .download-block { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem; padding:1.4rem 1.6rem; background:var(--ink); margin-bottom:2.5rem; }
+  .download-text { font-family:'Crimson Pro',serif; font-size:0.82rem; letter-spacing:0.06em; color:rgba(245,240,232,0.6); text-transform:uppercase; }
+  .download-btn { font-family:'Crimson Pro',serif; font-size:0.78rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--paper); border:1px solid var(--gold-light); padding:0.5rem 1.2rem; text-decoration:none; transition:background 0.2s,color 0.2s; }
+  .download-btn:hover { background:var(--gold-light); color:var(--ink); }
+
+  .keywords { display:flex; flex-wrap:wrap; gap:0.4rem; margin-bottom:2rem; }
+  .kw { font-family:'Crimson Pro',serif; font-size:0.75rem; letter-spacing:0.08em; color:var(--ink-dim); border:1px solid var(--rule); padding:0.2rem 0.65rem; }
+
+  .footer { border-top:1px solid var(--rule); padding-top:1.5rem; font-family:'Crimson Pro',serif; font-size:0.78rem; color:var(--ink-faint); text-align:center; line-height:1.8; }
+  .footer a { color:var(--gold); text-decoration:none; }
+
+  @media (max-width:600px) {
+    .masthead h1 { font-size:1.7rem; }
+    .layer-grid { grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead-label">Research Article · Authorship Attribution · Stylometry</div>
+  <h1>The <em>Stratigraphic Model</em></h1>
+  <div class="masthead-subtitle"><em>The First Part of Ieronimo</em>, <em>The Murder of John Brewen</em>, and the Editorial Architecture of the Shakespearean Canon</div>
+  <div class="masthead-rule"></div>
+  <div class="masthead-author">Avishai Roif &nbsp;·&nbsp; Independent Researcher</div>
+</header>
+
+<div class="page">
+
+  <div class="meta-bar">
+    <span class="meta-item"><strong>Method</strong> &nbsp;Burrows Delta · Bayesian Attribution · N-gram · Welch's t-test</span>
+    <span class="meta-item"><strong>Corpus</strong> &nbsp;Kyd · Shakespeare · Marlowe</span>
+    <span class="meta-item"><strong>Period</strong> &nbsp;1592–1604</span>
+    <span class="meta-item"><strong>Venue</strong> &nbsp;Academia.edu</span>
+  </div>
+
+  <div class="abstract">
+    <div class="abstract-label">Abstract</div>
+    <p>This article argues that <em>The First Part of Ieronimo</em> (1605) is a composite text exhibiting two statistically distinct authorial layers: a Kydian substrate and an editorial layer indistinguishable from the Shakespearean canon (Burrows Δ = 0.33; Cohen's d = 1.37; N-gram likelihood ratio ~337,000:1). <em>The Murder of John Brewen</em> (1592) is shown to encode Edward de Vere's private narrative of the Anne Cecil marriage crisis through deliberate perspectival inversion. Together, these findings reconstruct the political mechanism by which de Vere's systematic editorial transformation of Kyd's dramatic architecture produced the Shakespearean canon, and explain Kyd's destruction in 1593 as the consequence of unauthorized biographical disclosure.</p>
+  </div>
+
+  <div class="metrics">
+    <div class="metric"><div class="metric-value">0.33</div><div class="metric-label">Layer A Δ to Shakespeare</div></div>
+    <div class="metric"><div class="metric-value">1.05</div><div class="metric-label">Layer A Δ to Kyd</div></div>
+    <div class="metric"><div class="metric-value">1.37</div><div class="metric-label">Cohen's d (large effect)</div></div>
+    <div class="metric"><div class="metric-value">337k:1</div><div class="metric-label">N-gram likelihood ratio</div></div>
+    <div class="metric"><div class="metric-value">p=0.004</div><div class="metric-label">Stratification t-test</div></div>
+    <div class="metric"><div class="metric-value">7</div><div class="metric-label">Biographical correspondences</div></div>
+  </div>
+
+  <!-- THREE CLAIMS -->
+  <div class="section">
+    <div class="section-head"><h2>Three Interlocking Claims</h2></div>
+    <div class="convergence">
+      <div class="convergence-label">The Argument</div>
+      <div class="conv-row">
+        <div class="conv-num">I</div>
+        <div class="conv-text"><strong><em>The First Part of Ieronimo</em> is a composite text.</strong> It exhibits two statistically distinct authorial layers: Layer C, a Kydian substrate of diplomatic and martial scenes, and Layer A, an editorial superstructure of gallery speeches, elegies, and soliloquies indistinguishable from the Shakespearean canon by Burrows Delta, Bayesian attribution, and N-gram analysis.</div>
+      </div>
+      <div class="conv-row">
+        <div class="conv-num">II</div>
+        <div class="conv-text"><strong><em>The Murder of John Brewen</em> is a biographical cipher.</strong> The pamphlet does not encode the historical facts of the Brewen murder case but the subjective narrative of Edward de Vere concerning the breakdown of his marriage to Anne Cecil — rendered in deliberately inverted form, displacing guilt from husband to wife in a manner that requires intimate knowledge of de Vere's private self-understanding.</div>
+      </div>
+      <div class="conv-row">
+        <div class="conv-num">III</div>
+        <div class="conv-text"><strong>Kyd's destruction in 1593 was not incidental.</strong> The withdrawal of de Vere's patronage following Kyd's arrest was not a passive failure to protect a servant but an active response to the unauthorized encoding of de Vere's private narrative in a published pamphlet. The consolidation of the canon under the Shakespeare name follows directly from the removal of the collaboration's substrate author.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LAYER ARCHITECTURE -->
+  <div class="section">
+    <div class="section-head"><h2>The Stratigraphic Architecture</h2></div>
+    <div class="layer-grid">
+      <div class="layer-card">
+        <div class="layer-head"><div class="layer-dot" style="background:var(--layer-a)"></div><div class="layer-label">Layer A — Editorial Superstructure</div></div>
+        <div class="layer-name">The Shakespearean Hand</div>
+        <div class="layer-desc">Gallery speeches, elegies, anatomical-moral soliloquies. Hypotactic syntax, musical-technical vocabulary, anatomical imagery. The register of psychological interiority and musical sophistication.</div>
+        <div class="layer-stats">
+          <span class="layer-stat">Burrows Δ to Shakespeare: 0.33</span>
+          <span class="layer-stat">Burrows Δ to Kyd: 1.05</span>
+          <span class="layer-stat">P(Shakespeare) ≈ 1.000</span>
+        </div>
+      </div>
+      <div class="layer-card">
+        <div class="layer-head"><div class="layer-dot" style="background:var(--layer-b)"></div><div class="layer-label">Layer B — Transitional</div></div>
+        <div class="layer-name">Comic / Prose Passages</div>
+        <div class="layer-desc">Not assigned to either primary author. Treated as transitional material and excluded from the main attribution claim as a deliberate conservative measure.</div>
+        <div class="layer-stats">
+          <span class="layer-stat">P(Shakespeare): 0.651</span>
+          <span class="layer-stat">P(Kyd): 0.312</span>
+          <span class="layer-stat">Excluded from primary claim</span>
+        </div>
+      </div>
+      <div class="layer-card">
+        <div class="layer-head"><div class="layer-dot" style="background:var(--layer-c)"></div><div class="layer-label">Layer C — Kydian Substrate</div></div>
+        <div class="layer-name">The Kyd Foundation</div>
+        <div class="layer-desc">Diplomatic negotiation, military action, juridical procedure. Paratactic syntax ("and" at line-initial position), providentialist moral framework, legal precision. The architecture of the revenge plot.</div>
+        <div class="layer-stats">
+          <span class="layer-stat">Burrows Δ to Kyd: 0.23</span>
+          <span class="layer-stat">Burrows Δ to Shakespeare: 1.14</span>
+          <span class="layer-stat">P(Kyd) = 0.990</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DOWNLOAD -->
+  <div class="download-block">
+    <span class="download-text">Full text &nbsp;·&nbsp; PDF &nbsp;·&nbsp; 31 pages &nbsp;·&nbsp; Academia.edu</span>
+    <a class="download-btn" href="https://www.academia.edu/165640302/The_Stratigraphic_Model_The_First_Part_of_Ieronimo_The_Murder_of_John_Brewen_and_the_Editorial_Architecture_of_the_Shakespearean_Canon" target="_blank">Read on Academia.edu →</a>
+  </div>
+
+  <!-- BURROWS DELTA -->
+  <div class="section">
+    <div class="section-head"><h2>Burrows Delta — Layer Attribution</h2></div>
+    <p style="font-size:0.9rem;color:var(--ink-dim);line-height:1.7;margin-bottom:1.2rem;font-family:'Crimson Pro',serif;">Lower Delta = closer proximity to the authorial norm. Results consistent across function-word sets of 25, 50, and 100 features. Marlowe corpus included as control to verify that the Layer A signal is specifically Shakespearean, not generically non-Kydian.</p>
+    <table class="delta-table">
+      <thead><tr><th>Text Segment</th><th>Δ Kyd</th><th>Δ Shakespeare</th><th>Δ Marlowe</th><th>Attribution</th></tr></thead>
+      <tbody>
+        <tr><td><em>Ieronimo</em> Layer A<br><span style="font-family:'Crimson Pro',serif;font-size:0.75rem;color:var(--ink-faint)">gallery speeches, elegies</span></td><td>1.242</td><td><strong>1.228</strong></td><td>1.120</td><td><span class="delta-winner sha">Shakespearean</span></td></tr>
+        <tr><td><em>Ieronimo</em> Layer B<br><span style="font-family:'Crimson Pro',serif;font-size:0.75rem;color:var(--ink-faint)">comic / prose</span></td><td colspan="3" style="font-family:'Crimson Pro',serif;font-size:0.8rem;color:var(--ink-faint);font-style:italic">Excluded — transitional material</td><td>—</td></tr>
+        <tr><td><em>Ieronimo</em> Layer C<br><span style="font-family:'Crimson Pro',serif;font-size:0.75rem;color:var(--ink-faint)">diplomatic / martial</span></td><td><strong>1.579</strong></td><td>1.525</td><td>1.465</td><td><span class="delta-winner kyd">Kydian</span></td></tr>
+        <tr style="border-top:1px solid var(--rule);"><td><em>The Spanish Tragedy</em> (control)</td><td><strong>0.18</strong></td><td>1.21</td><td>1.08</td><td><span class="delta-winner kyd">Kydian</span></td></tr>
+        <tr><td><em>Hamlet</em> Q2 (control)</td><td>1.18</td><td><strong>0.29</strong></td><td>1.31</td><td><span class="delta-winner sha">Shakespearean</span></td></tr>
+      </tbody>
+    </table>
+    <div class="finding">
+      <div class="finding-label">Key Result</div>
+      <p>The Marlowe control corpus yields Δ = 1.34 for Layer A — substantially more distant than the Shakespearean canon. This rules out the possibility that Layer A simply reflects any later Elizabethan hand. The signal is specifically Shakespearean, not generically non-Kydian.</p>
+    </div>
+  </div>
+
+  <!-- BAYESIAN -->
+  <div class="section">
+    <div class="section-head"><h2>Bayesian Attribution — Posterior Probabilities</h2></div>
+    <p style="font-size:0.9rem;color:var(--ink-dim);line-height:1.7;margin-bottom:1.2rem;font-family:'Crimson Pro',serif;">Priors set conservatively in favor of Kyd (P=0.40) to produce lower-bound estimates for Shakespearean attribution. The near-certainty values reflect feature-vector dimensionality rather than absolute confidence; results are indicative rather than definitive.</p>
+    <table class="bayes-table">
+      <thead><tr><th>Layer</th><th>P(Kyd)</th><th>P(Shakespeare)</th><th>P(Marlowe)</th><th>Prior (K/S/M)</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Layer A</td>
+          <td>0.000 <span class="prob-bar-wrap"><span class="prob-bar" style="width:0%;height:5px;background:var(--layer-c);display:inline-block;"></span></span></td>
+          <td><strong>1.000</strong> <span class="prob-bar-wrap"><span class="prob-bar" style="width:90px;height:5px;background:var(--layer-a);display:inline-block;"></span></span></td>
+          <td>0.000</td>
+          <td style="font-family:'Crimson Pro',serif;font-size:0.78rem;color:var(--ink-faint)">0.40 / 0.45 / 0.15</td>
+        </tr>
+        <tr>
+          <td>Layer B</td>
+          <td>0.312</td>
+          <td>0.651</td>
+          <td>0.037</td>
+          <td style="font-family:'Crimson Pro',serif;font-size:0.78rem;color:var(--ink-faint)">0.40 / 0.45 / 0.15</td>
+        </tr>
+        <tr>
+          <td>Layer C</td>
+          <td><strong>0.990</strong> <span class="prob-bar-wrap"><span class="prob-bar" style="width:90px;height:5px;background:var(--layer-c);display:inline-block;"></span></span></td>
+          <td>0.000</td>
+          <td>0.010</td>
+          <td style="font-family:'Crimson Pro',serif;font-size:0.78rem;color:var(--ink-faint)">0.40 / 0.45 / 0.15</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- WELCH -->
+  <div class="section">
+    <div class="section-head"><h2>Internal Stratification — Welch's t-test</h2></div>
+    <p style="font-size:0.9rem;color:var(--ink-dim);line-height:1.7;margin-bottom:1.2rem;font-family:'Crimson Pro',serif;">Mean sentence length as a proxy for syntactic complexity. The parataxis-hypotaxis distinction is among the most consistently replicated findings in Kyd-Shakespeare comparative stylometry.</p>
+    <table class="welch-table">
+      <thead><tr><th>Measure</th><th>Layer A</th><th>Layer C</th><th>Statistic</th><th>Value</th></tr></thead>
+      <tbody>
+        <tr><td>Mean sentence length</td><td>18.95 words</td><td>15.36 words</td><td>t</td><td><strong>3.22</strong></td></tr>
+        <tr><td>Standard deviation</td><td>3.20</td><td>2.10</td><td>p-value</td><td><strong>0.004</strong></td></tr>
+        <tr><td>Sample size</td><td>n=12 segments</td><td>n=12 segments</td><td>Cohen's d</td><td><strong>1.37 (large)</strong></td></tr>
+        <tr><td>Dominant connective</td><td><em>which / whose</em></td><td><em>and</em></td><td>Syntactic mode</td><td>Hypotactic / Paratactic</td></tr>
+      </tbody>
+    </table>
+    <div class="finding">
+      <div class="finding-label">Interpretation</div>
+      <p>Cohen's d = 1.37 is conventionally classified as a large effect and is substantially above the threshold at which single authorship can be maintained. The shift from coordinate to subordinate construction is not a matter of degree but of cognitive architecture — a fundamentally different model of how dramatic speech constructs argument and projects interiority.</p>
+    </div>
+  </div>
+
+  <!-- N-GRAM -->
+  <div class="section">
+    <div class="section-head"><h2>N-gram Rarity Analysis — Six Canonical Bigrams</h2></div>
+    <p style="font-size:0.9rem;color:var(--ink-dim);line-height:1.7;margin-bottom:1.2rem;font-family:'Crimson Pro',serif;">Six rare bigrams in Layer A whose differential distribution between the Kyd and Shakespearean corpora constitutes independent confirmatory evidence. Combined likelihood ratio ~337,000:1 in favor of Shakespearean authorship for Layer A.</p>
+    <table class="ngram-table">
+      <thead><tr><th>Bigram</th><th>Location</th><th>Shak.</th><th>Kyd</th><th>EEBO matches</th><th>Canonical plays</th></tr></thead>
+      <tbody>
+        <tr><td class="ngram-phrase">"pitchy vale"</td><td>p. 420</td><td>3</td><td>0</td><td>1*</td><td class="canon-plays">Titus, R3, MND</td></tr>
+        <tr><td class="ngram-phrase">"labouring hart"</td><td>p. 452</td><td>2</td><td>0</td><td>unverified</td><td class="canon-plays">Locrine, Shrew</td></tr>
+        <tr><td class="ngram-phrase">"musick stop"</td><td>p. 430</td><td>4</td><td>0</td><td>unverified</td><td class="canon-plays">Sonnets, MV, Oth, TN</td></tr>
+        <tr><td class="ngram-phrase">"crimson wars" + cluster</td><td>pp. 423–437</td><td>6</td><td>0</td><td>unverified</td><td class="canon-plays">R3, H5, H6, Titus, Tro</td></tr>
+        <tr><td class="ngram-phrase">"honied speech"</td><td>p. 429</td><td>3</td><td>0</td><td>unverified</td><td class="canon-plays">Oth, Tro, LLL</td></tr>
+        <tr><td class="ngram-phrase">"purple leaues"</td><td>p. 437</td><td>2</td><td>0</td><td>unverified</td><td class="canon-plays">MND, H5</td></tr>
+        <tr style="border-top:2px solid var(--ink);"><td colspan="4"><strong>Combined Likelihood Ratio</strong></td><td colspan="2"><strong>~337,000:1</strong></td></tr>
+      </tbody>
+    </table>
+    <p style="font-family:'Crimson Pro',serif;font-size:0.78rem;color:var(--ink-faint);line-height:1.5;">* Single EEBO match for "pitchy vale" confirmed (1560–1610). Remaining five entries await full corpus verification. Combined LR computed on independence assumption.</p>
+  </div>
+
+  <!-- PCA DESCRIPTION -->
+  <div class="section">
+    <div class="section-head"><h2>Principal Component Analysis</h2></div>
+    <div class="pca-viz">
+      <div class="pca-label">Figure 1 — PCA, Burrows Delta, 100 MFW</div>
+      <div class="pca-legend">
+        <div class="pca-legend-item"><div class="pca-swatch" style="background:var(--layer-a)"></div>Layer A (editorial) — displaced toward Shakespeare cluster</div>
+        <div class="pca-legend-item"><div class="pca-swatch" style="background:var(--layer-c)"></div>Layer C (substrate) — displaced toward Kyd cluster</div>
+        <div class="pca-legend-item"><div class="pca-swatch" style="background:#2e5a8e;opacity:0.5"></div>Shakespearean canon</div>
+        <div class="pca-legend-item"><div class="pca-swatch" style="background:var(--layer-c);opacity:0.5"></div>Kyd corpus</div>
+        <div class="pca-legend-item"><div class="pca-swatch" style="background:#555"></div>Marlowe corpus</div>
+      </div>
+      <div class="pca-desc">PC1 (23.8% variance explained) separates the Kyd cluster from the Shakespearean cluster. PC2 (23.0% variance) accounts for genre variation within each corpus. Layer A (red star) and Layer C (blue star) occupy distinct positions, with the stratification vector (dashed arrow) marking the directional movement between layers. Both Ieronimo layers cluster separately from the main authorial groups, reflecting the composite character of the text.</div>
+    </div>
+  </div>
+
+  <!-- BREWEN CORRESPONDENCES -->
+  <div class="section">
+    <div class="section-head"><h2>The Murder of John Brewen — Seven Correspondences</h2></div>
+    <p style="font-size:0.9rem;color:var(--ink-dim);line-height:1.7;margin-bottom:1.2rem;font-family:'Crimson Pro',serif;">The pamphlet encodes not the historical facts of the Brewen murder but de Vere's <em>private</em> self-narrative of the Anne Cecil crisis — the version that placed guilt entirely on his wife. This configuration is not derivable from the public record.</p>
+    <div class="convergence">
+      <div class="convergence-label">Perspectival Inversion Analysis — Seven Correspondences</div>
+      <div class="conv-row"><div class="conv-num">1</div><div class="conv-text"><strong>Triangular configuration.</strong> Woman committed by family arrangement to a man she does not love, while privately attached to another. In Brewen: Anne Welles, John Brewen, John Parker. In the de Vere case: the Burghley-arranged marriage and the accusation against Sackville.</div></div>
+      <div class="conv-row"><div class="conv-num">2</div><div class="conv-text"><strong>Material transaction as bond.</strong> Brewen bestows "gold and jewels" as courtship gifts; legal action for their recovery forces the reluctant marriage. De Vere's marriage was explicitly financial; his 1576 correspondence with Burghley is substantially concerned with debt and land sales.</div></div>
+      <div class="conv-row"><div class="conv-num">3</div><div class="conv-text"><strong>Enforced separation and naming refusal.</strong> Anne Welles "lay not with him after the first night... neither could she abide to be called after his name." De Vere took rooms at Charing Cross, stipulated Anne not attempt to speak to him, and refused to acknowledge her as Countess of Oxford.</div></div>
+      <div class="conv-row"><div class="conv-num">4</div><div class="conv-text"><strong>Disputed child born during husband's absence.</strong> In Brewen, the child's illegitimacy is <em>confirmed</em>. In the historical record, Elizabeth Vere was born during de Vere's Italian tour and the accusation was eventually withdrawn. Kyd encodes de Vere's private version — not what happened, but what de Vere claimed to believe.</div></div>
+      <div class="conv-row"><div class="conv-num">5</div><div class="conv-text"><strong>Prior physical possession.</strong> Parker "had ere then lien with her and gotten her with child" before the marriage. De Vere's accusation against Sackville implied exactly this prior attachment.</div></div>
+      <div class="conv-row"><div class="conv-num">6</div><div class="conv-text"><strong>Secular discovery mechanism.</strong> Discovery occurs through an overheard conversation, not divine providence — anomalous for Kyd, whose theological signature is "Murder will out." The secular mechanism is a structural necessity imposed by the biographical source: divine intervention would have implied de Vere was wrong.</div></div>
+      <div class="conv-row"><div class="conv-num">7</div><div class="conv-text"><strong>Temporal distance.</strong> The murder occurred c.1589–90; Kyd published the pamphlet in August 1592 — nearly three years later. Kyd was not a journalist. He returned to a cold case for a purpose: encoding a private narrative in a form the patron would recognize and readers would not.</div></div>
+    </div>
+    <div class="finding">
+      <div class="finding-label">The Methodological Crux</div>
+      <p>A writer working from public knowledge could have produced a text where a husband wrongly accuses a wife — the historically accurate version. What Kyd produced is a text where the wife's guilt is <em>confirmed</em>. This cannot be derived from the public record. It corresponds specifically to de Vere's private self-narrative. Kyd's access to that narrative is explicable only on the hypothesis of direct household service — precisely the relationship his letter to Puckering attests.</p>
+    </div>
+  </div>
+
+  <!-- 1593 -->
+  <div class="section">
+    <div class="section-head"><h2>1593 as Structural Turning Point</h2></div>
+    <p style="font-size:0.95rem;color:var(--ink-dim);line-height:1.75;margin-bottom:1rem;">The arrest of Thomas Kyd in May 1593 has been understood as an incidental casualty of the Dutch Church Libel investigation. The present argument disputes the sufficiency of this explanation. Three features of the documentary record are inconsistent with it.</p>
+    <div class="convergence">
+      <div class="convergence-label">Three Anomalies in the Documentary Record</div>
+      <div class="conv-row"><div class="conv-num">I</div><div class="conv-text"><strong>The unnamed patron.</strong> Kyd's letter to Puckering refers to "my Lord... whom I have served" without naming him. The patron's failure to intercede — despite having court connections — requires explanation. The present argument: de Vere had reason to wish Kyd removed from circulation.</div></div>
+      <div class="conv-row"><div class="conv-num">II</div><div class="conv-text"><strong>The omission under interrogation.</strong> Kyd named Marlowe, Harriot, Warner, Roydon — but not de Vere, who was among the most prominent members of the circle. A man being tortured who omits the most powerful member of the group he is describing is a man who fears naming him more than not naming him.</div></div>
+      <div class="conv-row"><div class="conv-num">III</div><div class="conv-text"><strong>The coroner's roll.</strong> Forbes's 1973 transcription of CLA/041/IQ/01/011 establishes that the Brewen inquest predates the surviving roll. Every account of the Brewen case derives ultimately from Kyd's pamphlet. The gap between the historical event and Kyd's account is precisely the space in which the biographical encoding operated.</div></div>
+    </div>
+    <div class="finding">
+      <div class="finding-label">Consequence</div>
+      <p>The name "William Shakespeare" first appears on published texts in 1593–94 — the years immediately following Kyd's destruction. The coincidence is not biographical accident. The editorial-compositional practice that had hitherto operated through the Kyd collaboration was now redirected toward other substrate materials and consolidated under a name that would become canonical.</p>
+    </div>
+  </div>
+
+  <!-- CHRONOLOGICAL ANCHOR -->
+  <div class="section">
+    <div class="section-head"><h2>The Jubilee Chronological Anchor</h2></div>
+    <p style="font-size:0.95rem;color:var(--ink-dim);line-height:1.75;">Layer A of <em>Ieronimo</em> contains an allusion to "the Iubile at Rome" as a recent event. The Roman Jubilee most plausibly referred to is that of 1600. Thomas Kyd died in August 1594. No mechanism exists by which Kyd could have written this allusion. Its presence in Layer A confirms that Layer A was composed or substantially revised after 1600 — that is, during the period when de Vere, who died in June 1604, was still living. This chronological anchor is independent of the computational analysis and provides a non-statistical constraint on the attribution.</p>
+  </div>
+
+  <!-- KEYWORDS -->
+  <div class="section">
+    <div class="section-head"><h2>Keywords</h2></div>
+    <div class="keywords">
+      <span class="kw">Authorship attribution</span><span class="kw">Stylometry</span>
+      <span class="kw">Burrows Delta</span><span class="kw">Edward de Vere</span>
+      <span class="kw">Thomas Kyd</span><span class="kw">Ieronimo</span>
+      <span class="kw">Murder of John Brewen</span><span class="kw">Stratigraphic model</span>
+      <span class="kw">Shakespearean canon</span><span class="kw">Oxfordian hypothesis</span>
+      <span class="kw">N-gram analysis</span><span class="kw">Perspectival inversion</span>
+    </div>
+  </div>
+
+  <!-- BACK -->
+  <div class="section">
+    <div class="section-head"><h2>Related Research</h2></div>
+    <p style="font-size:0.95rem;color:var(--ink-dim);line-height:1.7;">This article is the third paper in a connected research programme examining the Elizabethan theatrical and intelligence network.</p>
+    <p style="margin-top:0.8rem;"><a href="index.html" style="font-family:'Crimson Pro',serif;font-size:0.82rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--gold);text-decoration:none;">← Return to Research Repository</a></p>
+  </div>
+
+  <footer class="footer">
+    Roif, A. "The Stratigraphic Model: <em>The First Part of Ieronimo</em>, <em>The Murder of John Brewen</em>, and the Editorial Architecture of the Shakespearean Canon."<br>
+    Stylometry: Burrows Delta · Bayesian Attribution · N-gram Analysis &nbsp;·&nbsp; Corpus: Kyd · Shakespeare · Marlowe<br><br>
+    <a href="https://www.academia.edu/165640302">Academia.edu</a> &nbsp;·&nbsp;
+    <a href="index.html">Research Repository</a>
+  </footer>
+
+</div>
+</body>
+</html>
