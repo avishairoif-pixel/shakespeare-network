@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Imperium Romanum Redux — Network Analysis</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Cinzel:wght@400;600&family=IM+Fell+English:ital@0;1&display=swap');
+
+  :root {
+    --bg: #0a0804;
+    --parchment: #f2e8d0;
+    --polish: #8B1A1A;
+    --roman: #C4960A;
+    --pembroke: #1A4A6B;
+    --bridge: #4A7A4A;
+    --evidentiary: #d4af37;
+    --interpretive: #888;
+    --text: #e8dcc8;
+    --dim: #6b5f4e;
+    --border: #3a2e1e;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Cormorant Garamond', serif;
+    min-height: 100vh;
+    padding: 40px 20px;
+  }
+
+  .page {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  /* HEADER */
+  .header {
+    text-align: center;
+    margin-bottom: 60px;
+    padding-bottom: 30px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .header h1 {
+    font-family: 'Cinzel', serif;
+    font-size: 1.9rem;
+    letter-spacing: 0.15em;
+    color: var(--evidentiary);
+    margin-bottom: 6px;
+  }
+
+  .header h2 {
+    font-family: 'IM Fell English', serif;
+    font-style: italic;
+    font-size: 1.1rem;
+    color: var(--dim);
+    letter-spacing: 0.05em;
+  }
+
+  /* SECTION TITLES */
+  .section-title {
+    font-family: 'Cinzel', serif;
+    font-size: 0.75rem;
+    letter-spacing: 0.3em;
+    color: var(--evidentiary);
+    text-transform: uppercase;
+    margin-bottom: 24px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  section {
+    margin-bottom: 60px;
+  }
+
+  /* LEGEND */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    margin-bottom: 40px;
+    padding: 20px 24px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.85rem;
+  }
+
+  .legend-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .legend-line {
+    width: 28px;
+    height: 2px;
+    flex-shrink: 0;
+  }
+
+  /* NETWORK SVG */
+  .network-container {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border);
+    padding: 10px;
+    margin-bottom: 12px;
+    position: relative;
+  }
+
+  .network-container svg {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  .caption {
+    font-family: 'IM Fell English', serif;
+    font-style: italic;
+    font-size: 0.82rem;
+    color: var(--dim);
+    text-align: center;
+    margin-top: 8px;
+  }
+
+  /* TABLES */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+
+  thead th {
+    font-family: 'Cinzel', serif;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--evidentiary);
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    background: rgba(255,255,255,0.03);
+  }
+
+  tbody td {
+    padding: 9px 14px;
+    border-bottom: 1px solid rgba(58,46,30,0.5);
+    vertical-align: top;
+    line-height: 1.5;
+  }
+
+  tbody tr:hover {
+    background: rgba(212,175,55,0.05);
+  }
+
+  .tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 2px;
+    font-size: 0.7rem;
+    font-family: 'Cinzel', serif;
+    letter-spacing: 0.1em;
+  }
+
+  .tag-polish { background: rgba(139,26,26,0.25); color: #e07070; border: 1px solid rgba(139,26,26,0.4); }
+  .tag-roman { background: rgba(196,150,10,0.2); color: #d4a520; border: 1px solid rgba(196,150,10,0.35); }
+  .tag-pembroke { background: rgba(26,74,107,0.3); color: #5b9fd4; border: 1px solid rgba(26,74,107,0.5); }
+  .tag-bridge { background: rgba(74,122,74,0.25); color: #7ab87a; border: 1px solid rgba(74,122,74,0.4); }
+  .tag-ev { background: rgba(212,175,55,0.15); color: var(--evidentiary); border: 1px solid rgba(212,175,55,0.3); }
+  .tag-int { background: rgba(136,136,136,0.15); color: #aaa; border: 1px solid rgba(136,136,136,0.3); }
+
+  .certainty-bar {
+    display: inline-block;
+    height: 6px;
+    border-radius: 1px;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+
+  /* TIMELINE */
+  .timeline {
+    position: relative;
+    padding-left: 30px;
+  }
+
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 10px;
+    bottom: 10px;
+    width: 1px;
+    background: linear-gradient(to bottom, transparent, var(--evidentiary) 10%, var(--evidentiary) 90%, transparent);
+  }
+
+  .timeline-item {
+    position: relative;
+    margin-bottom: 28px;
+    padding-left: 24px;
+  }
+
+  .timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -5px;
+    top: 8px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--bg);
+    border: 2px solid var(--evidentiary);
+  }
+
+  .timeline-item.phase-1::before { border-color: var(--polish); }
+  .timeline-item.phase-2::before { border-color: var(--pembroke); }
+  .timeline-item.phase-3::before { border-color: var(--roman); }
+  .timeline-item.bridge::before { border-color: var(--bridge); background: var(--bridge); width: 8px; height: 8px; }
+
+  .timeline-year {
+    font-family: 'Cinzel', serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    color: var(--evidentiary);
+    margin-bottom: 4px;
+  }
+
+  .timeline-event {
+    font-size: 0.9rem;
+    color: var(--text);
+    line-height: 1.5;
+  }
+
+  .timeline-note {
+    font-style: italic;
+    font-size: 0.78rem;
+    color: var(--dim);
+    margin-top: 3px;
+  }
+
+  /* STAT BOXES */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+
+  .stat-box {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    padding: 20px;
+    text-align: center;
+  }
+
+  .stat-number {
+    font-family: 'Cinzel', serif;
+    font-size: 2.2rem;
+    color: var(--evidentiary);
+    display: block;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .stat-label {
+    font-size: 0.72rem;
+    color: var(--dim);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* PATH HIGHLIGHT */
+  .path-box {
+    background: rgba(212,175,55,0.05);
+    border: 1px solid rgba(212,175,55,0.2);
+    padding: 20px 24px;
+    margin: 24px 0;
+  }
+
+  .path-title {
+    font-family: 'Cinzel', serif;
+    font-size: 0.65rem;
+    letter-spacing: 0.25em;
+    color: var(--evidentiary);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  .path-chain {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 0.88rem;
+  }
+
+  .path-node {
+    padding: 5px 12px;
+    border: 1px solid;
+    font-family: 'Cinzel', serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+  }
+
+  .path-arrow {
+    color: var(--evidentiary);
+    font-size: 0.9rem;
+  }
+
+  .path-label {
+    font-size: 0.68rem;
+    color: var(--dim);
+    font-style: italic;
+    display: block;
+    text-align: center;
+    margin-top: 2px;
+  }
+
+  .path-node-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* TWO COLUMN */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+
+  @media (max-width: 700px) {
+    .stats-grid { grid-template-columns: repeat(2,1fr); }
+    .two-col { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="header">
+    <h1>Imperium Romanum Redux</h1>
+    <h2>Network Analysis — The Catholic Strategic Campaign Against Elizabethan England, 1597–1605</h2>
+  </div>
+
+  <!-- DATABASE STATS -->
+  <section>
+    <div class="section-title">Database Summary</div>
+    <div class="stats-grid">
+      <div class="stat-box">
+        <span class="stat-number">30</span>
+        <span class="stat-label">Total Nodes</span>
+      </div>
+      <div class="stat-box">
+        <span class="stat-number">44</span>
+        <span class="stat-label">Total Edges</span>
+      </div>
+      <div class="stat-box">
+        <span class="stat-number">42</span>
+        <span class="stat-label">Evidentiary</span>
+      </div>
+      <div class="stat-box">
+        <span class="stat-number">2</span>
+        <span class="stat-label">Interpretive</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- LEGEND -->
+  <section>
+    <div class="section-title">Legend</div>
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-dot" style="background:var(--polish)"></div>
+        <span>Polish Diplomatic Network</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:var(--roman)"></div>
+        <span>Roman–Spanish Strategic Network</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:var(--pembroke)"></div>
+        <span>Pembroke–Theatre Network</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:var(--bridge)"></div>
+        <span>Bridge Node</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-line" style="background:var(--evidentiary)"></div>
+        <span>Evidentiary Edge (certainty 1.0)</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-line" style="background:var(--interpretive); height:2px; border-top: 2px dashed var(--interpretive); background: none;"></div>
+        <span>Interpretive Edge (certainty 0.7)</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- FIGURE 1: FULL NETWORK -->
+  <section>
+    <div class="section-title">Figure 1 — Full Network Graph: Three Overlapping Networks, 1591–1605</div>
+    <div class="network-container">
+      <svg viewBox="0 0 1000 620" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arrow-gold" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#d4af37" opacity="0.8"/>
+          </marker>
+          <marker id="arrow-grey" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#888"/>
+          </marker>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+            <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+
+        <!-- Background zones -->
+        <ellipse cx="200" cy="200" rx="160" ry="130" fill="rgba(139,26,26,0.07)" stroke="rgba(139,26,26,0.15)" stroke-width="1"/>
+        <text x="200" y="60" text-anchor="middle" font-family="Cinzel, serif" font-size="10" fill="rgba(139,26,26,0.6)" letter-spacing="2">POLISH NETWORK</text>
+
+        <ellipse cx="760" cy="180" rx="170" ry="130" fill="rgba(196,150,10,0.07)" stroke="rgba(196,150,10,0.15)" stroke-width="1"/>
+        <text x="760" y="42" text-anchor="middle" font-family="Cinzel, serif" font-size="10" fill="rgba(196,150,10,0.6)" letter-spacing="2">ROMAN–SPANISH</text>
+
+        <ellipse cx="560" cy="480" rx="200" ry="120" fill="rgba(26,74,107,0.07)" stroke="rgba(26,74,107,0.15)" stroke-width="1"/>
+        <text x="560" y="590" text-anchor="middle" font-family="Cinzel, serif" font-size="10" fill="rgba(26,74,107,0.6)" letter-spacing="2">PEMBROKE NETWORK</text>
+
+        <!-- EDGES — Evidentiary (solid gold) -->
+        <!-- Sigismund → Działyński -->
+        <line x1="160" y1="165" x2="270" y2="250" stroke="#d4af37" stroke-width="1.5" opacity="0.7" marker-end="url(#arrow-gold)"/>
+        <!-- Sigismund → Elizabeth (×2) -->
+        <line x1="175" y1="170" x2="480" y2="280" stroke="#d4af37" stroke-width="1.5" opacity="0.5" marker-end="url(#arrow-gold)"/>
+        <!-- Polish Sejm → Działyński -->
+        <line x1="155" y1="245" x2="265" y2="255" stroke="#d4af37" stroke-width="1.5" opacity="0.7" marker-end="url(#arrow-gold)"/>
+        <!-- Gdańsk → Sigismund -->
+        <line x1="108" y1="195" x2="138" y2="175" stroke="#d4af37" stroke-width="1.5" opacity="0.5" marker-end="url(#arrow-gold)"/>
+        <!-- Działyński → Elizabeth -->
+        <line x1="295" y1="248" x2="475" y2="285" stroke="#d4af37" stroke-width="1.8" opacity="0.9" marker-end="url(#arrow-gold)"/>
+        <!-- Mendoza → Sigismund -->
+        <line x1="690" y1="165" x2="215" y2="175" stroke="#d4af37" stroke-width="1.5" opacity="0.6" marker-end="url(#arrow-gold)"/>
+        <!-- Caietani → Polish Sejm -->
+        <line x1="720" y1="195" x2="200" y2="230" stroke="#d4af37" stroke-width="1.5" opacity="0.6" marker-end="url(#arrow-gold)"/>
+        <!-- Caietani → Mercurius -->
+        <line x1="725" y1="210" x2="350" y2="310" stroke="#d4af37" stroke-width="1.5" opacity="0.6" marker-end="url(#arrow-gold)"/>
+        <!-- Pope → Caietani -->
+        <line x1="790" y1="100" x2="750" y2="155" stroke="#d4af37" stroke-width="1.5" opacity="0.7" marker-end="url(#arrow-gold)"/>
+        <!-- Philip II → Mendoza -->
+        <line x1="840" y1="165" x2="790" y2="165" stroke="#d4af37" stroke-width="1.5" opacity="0.7" marker-end="url(#arrow-gold)"/>
+        <!-- Robert Cecil → Działyński -->
+        <line x1="490" y1="340" x2="295" y2="258" stroke="#d4af37" stroke-width="2" opacity="0.95" marker-end="url(#arrow-gold)"/>
+        <!-- Robert Cecil → Isle of Dogs -->
+        <line x1="500" y1="355" x2="490" y2="430" stroke="#d4af37" stroke-width="2" opacity="0.95" marker-end="url(#arrow-gold)"/>
+        <!-- Bacon → Isle of Dogs -->
+        <line x1="430" y1="395" x2="470" y2="435" stroke="#d4af37" stroke-width="1.8" opacity="0.9" marker-end="url(#arrow-gold)"/>
+        <!-- Bacon → Essex -->
+        <line x1="415" y1="385" x2="380" y2="450" stroke="#d4af37" stroke-width="1.5" opacity="0.7" marker-end="url(#arrow-gold)"/>
+        <!-- Poley → Marlowe -->
+        <line x1="548" y1="375" x2="590" y2="430" stroke="#4A7A4A" stroke-width="1.8" opacity="0.85" marker-end="url(#arrow-gold)"/>
+        <!-- Poley → Jonson -->
+        <line x1="552" y1="380" x2="540" y2="430" stroke="#4A7A4A" stroke-width="1.8" opacity="0.85" marker-end="url(#arrow-gold)"/>
+        <!-- Poley → Privy Council -->
+        <line x1="555" y1="362" x2="500" y2="340" stroke="#4A7A4A" stroke-width="1.5" opacity="0.7" marker-end="url(#arrow-gold)"/>
+        <!-- Nashe → Isle -->
+        <line x1="508" y1="490" x2="490" y2="455" stroke="#d4af37" stroke-width="1.5" opacity="0.7" marker-end="url(#arrow-gold)"/>
+        <!-- Jonson → Isle -->
+        <line x1="538" y1="455" x2="495" y2="450" stroke="#d4af37" stroke-width="1.5" opacity="0.7" marker-end="url(#arrow-gold)"/>
+        <!-- Kyd → de Vere -->
+        <line x1="630" y1="490" x2="660" y2="455" stroke="#d4af37" stroke-width="1.5" opacity="0.6" marker-end="url(#arrow-gold)"/>
+        <!-- Marlowe → Pembroke's Men -->
+        <line x1="600" y1="450" x2="640" y2="430" stroke="#d4af37" stroke-width="1.5" opacity="0.6" marker-end="url(#arrow-gold)"/>
+        <!-- Herbert → Pembroke's Men -->
+        <line x1="695" y1="490" x2="660" y2="440" stroke="#d4af37" stroke-width="1.5" opacity="0.6" marker-end="url(#arrow-gold)"/>
+        <!-- Catesby → Essex -->
+        <line x1="340" y1="530" x2="370" y2="475" stroke="#d4af37" stroke-width="1.5" opacity="0.7" marker-end="url(#arrow-gold)"/>
+        <!-- Catesby → Philip III -->
+        <line x1="350" y1="525" x2="800" y2="250" stroke="#d4af37" stroke-width="1.3" opacity="0.5" marker-end="url(#arrow-gold)"/>
+        <!-- Wintour → Philip III -->
+        <line x1="290" y1="530" x2="795" y2="255" stroke="#d4af37" stroke-width="1.3" opacity="0.5" marker-end="url(#arrow-gold)"/>
+        <!-- Catesby → Wintour -->
+        <line x1="325" y1="535" x2="295" y2="535" stroke="#d4af37" stroke-width="1.5" opacity="0.7" marker-end="url(#arrow-gold)"/>
+
+        <!-- INTERPRETIVE EDGES (dashed) -->
+        <!-- Caietani → Działyński (interpretive) -->
+        <line x1="720" y1="205" x2="297" y2="255" stroke="#888" stroke-width="1.5" stroke-dasharray="5,4" opacity="0.7" marker-end="url(#arrow-grey)"/>
+        <!-- Essex → Pembroke's Men (interpretive) -->
+        <line x1="378" y1="460" x2="635" y2="430" stroke="#888" stroke-width="1.5" stroke-dasharray="5,4" opacity="0.7" marker-end="url(#arrow-grey)"/>
+
+        <!-- KEY PATH HIGHLIGHT -->
+        <line x1="432" y1="392" x2="471" y2="437" stroke="#fff" stroke-width="3" opacity="0.15"/>
+        <line x1="488" y1="437" x2="498" y2="358" stroke="#fff" stroke-width="3" opacity="0.15"/>
+        <line x1="498" y1="342" x2="298" y2="258" stroke="#fff" stroke-width="3" opacity="0.15"/>
+
+        <!-- NODES — Polish -->
+        <circle cx="155" cy="170" r="22" fill="rgba(139,26,26,0.3)" stroke="#8B1A1A" stroke-width="2"/>
+        <text x="155" y="167" text-anchor="middle" font-family="Cinzel,serif" font-size="7.5" fill="#e07070">SIGISMUND</text>
+        <text x="155" y="177" text-anchor="middle" font-family="Cinzel,serif" font-size="7.5" fill="#e07070">III</text>
+
+        <circle cx="280" cy="255" r="24" fill="rgba(139,26,26,0.4)" stroke="#8B1A1A" stroke-width="2.5" filter="url(#glow)"/>
+        <text x="280" y="252" text-anchor="middle" font-family="Cinzel,serif" font-size="7" fill="#ff9090">DZIAŁYŃSKI</text>
+        <text x="280" y="262" text-anchor="middle" font-family="Cinzel,serif" font-size="6.5" fill="#e07070">Ambassador</text>
+
+        <circle cx="90" cy="200" r="16" fill="rgba(139,26,26,0.2)" stroke="#8B1A1A" stroke-width="1.5"/>
+        <text x="90" y="197" text-anchor="middle" font-family="Cinzel,serif" font-size="6.5" fill="#e07070">GDAŃSK</text>
+        <text x="90" y="207" text-anchor="middle" font-family="Cinzel,serif" font-size="6" fill="#c06060">City</text>
+
+        <circle cx="155" cy="240" r="18" fill="rgba(139,26,26,0.2)" stroke="#8B1A1A" stroke-width="1.5"/>
+        <text x="155" y="237" text-anchor="middle" font-family="Cinzel,serif" font-size="6.5" fill="#e07070">POLISH</text>
+        <text x="155" y="247" text-anchor="middle" font-family="Cinzel,serif" font-size="6.5" fill="#e07070">SEJM</text>
+
+        <circle cx="350" cy="315" r="16" fill="rgba(139,26,26,0.2)" stroke="#8B1A1A" stroke-width="1.5"/>
+        <text x="350" y="312" text-anchor="middle" font-family="Cinzel,serif" font-size="6" fill="#e07070">MERCURIUS</text>
+        <text x="350" y="322" text-anchor="middle" font-family="Cinzel,serif" font-size="6" fill="#c06060">Sarmaticus</text>
+
+        <!-- NODES — Roman-Spanish -->
+        <circle cx="790" cy="90" r="20" fill="rgba(196,150,10,0.3)" stroke="#C4960A" stroke-width="2"/>
+        <text x="790" y="87" text-anchor="middle" font-family="Cinzel,serif" font-size="7" fill="#d4a520">POPE</text>
+        <text x="790" y="97" text-anchor="middle" font-family="Cinzel,serif" font-size="6.5" fill="#b89018">Clement VIII</text>
+
+        <circle cx="750" cy="175" r="20" fill="rgba(196,150,10,0.3)" stroke="#C4960A" stroke-width="2"/>
+        <text x="750" y="172" text-anchor="middle" font-family="Cinzel,serif" font-size="7" fill="#d4a520">CAIETANI</text>
+        <text x="750" y="182" text-anchor="middle" font-family="Cinzel,serif" font-size="6.5" fill="#b89018">Nuncio</text>
+
+        <circle cx="845" cy="165" r="18" fill="rgba(196,150,10,0.25)" stroke="#C4960A" stroke-width="1.5"/>
+        <text x="845" y="162" text-anchor="middle" font-family="Cinzel,serif" font-size="6.5" fill="#d4a520">PHILIP II</text>
+        <text x="845" y="172" text-anchor="middle" font-family="Cinzel,serif" font-size="6" fill="#b89018">Spain</text>
+
+        <circle cx="800" cy="230" r="18" fill="rgba(196,150,10,0.25)" stroke="#C4960A" stroke-width="1.5"/>
+        <text x="800" y="227" text-anchor="middle" font-family="Cinzel,serif" font-size="6.5" fill="#d4a520">PHILIP III</text>
+        <text x="800" y="237" text-anchor="middle" font-family="Cinzel,serif" font-size="6" fill="#b89018">Spain</text>
+
+        <circle cx="700" cy="165" r="18" fill="rgba(196,150,10,0.25)" stroke="#C4960A" stroke-width="1.5"/>
+        <text x="700" y="162" text-anchor="middle" font-family="Cinzel,serif" font-size="6.5" fill="#d4a520">MENDOZA</text>
+        <text x="700" y="172" text-anchor="middle" font-family="Cinzel,serif" font-size="6" fill="#b89018">Ambassador</text>
+
+        <circle cx="320" cy="535" r="18" fill="rgba(196,150,10,0.25)" stroke="#C4960A" stroke-width="1.5"/>
+        <text x="320" y="532" text-anchor="middle" font-family="Cinzel,serif" font-size="6.5" fill="#d4a520">WINTOUR</text>
+        <text x="320" y="542" text-anchor="middle" font-family="Cinzel,serif" font-size="6" fill="#b89018">Conspirator</text>
+
+        <circle cx="355" cy="535" r="18" fill="rgba(196,150,10,0.25)" stroke="#C4960A" stroke-width="1.5"/>
+        <text x="355" y="532" text-anchor="middle" font-family="Cinzel,serif" font-size="6.5" fill="#d4a520">CATESBY</text>
+        <text x="355" y="542" text-anchor="middle" font-family="Cinzel,serif" font-size="6" fill="#b89018">Plot Leader</text>
+
+        <!-- NODES — Pembroke / Bridge -->
+        <circle cx="490" cy="290" r="22" fill="rgba(26,74,107,0.35)" stroke="#1A4A6B" stroke-width="2"/>
+        <text x="490" y="287" text-anchor="middle" font-family="Cinzel,serif" font-size="7" fill="#5b9fd4">ELIZABETH I</text>
+        <text x="490" y="297" text-anchor="middle" font-family="Cinzel,serif" font-size="6.5" fill="#4a8ec0">Queen</text>
+
+        <circle cx="500" cy="350" r="24" fill="rgba(74,122,74,0.35)" stroke="#4A7A4A" stroke-width="2.5" filter="url(#glow)"/>
+        <text x="500" y="347" text-anchor="middle" font-family="Cinzel,serif" font-size="7" fill="#7ab87a">R. CECIL</text>
+        <text x="500" y="357" text-anchor="middle" font-family="Cinzel,serif" font-size="6.5" fill="#5aa05a">Bridge Node</text>
+
+        <circle cx="550" cy="370" r="20" fill="rgba(74,122,74,0.3)" stroke="#4A7A4A" stroke-width="2"/>
+        <text x="550" y="367" text-anchor="middle" font-family="Cinzel,serif" font-size="6.5" fill="#7ab87a">R. POLEY</text>
+        <text x="550" y="377" text-anchor="middle" font-family="Cinzel,serif" font-size="6" fill="#5aa05a">Informant</text>
+
+        <circle cx="425" cy="385" r="18" fill="rgba(26,74,107,0.3)" stroke="#1A4A6B" stroke-width="1.5"/>
+        <text x="425" y="382" text-anchor="middle" font-family="Cinzel,serif" font-size="6.5" fill="#5b9fd4">F. BACON</text>
+        <text x="425" y="392" text-anchor="middle" font-family="Cinzel,serif" font-size="6" fill="#4a8ec0">Secretary</text>
+
+        <circle cx="375" cy="462" r="18" fill="rgba(26,74,107,0.3)" stroke="#1A4A6B" stroke-width="1.5"/>
+        <text x="375" y="459" text-anchor="middle" font-family="Cinzel,serif" font-size="6.5" fill="#5b9fd4">ESSEX</text>
+        <text x="375" y="469" text-anchor="middle" font-family="Cinzel,serif" font-size="6" fill="#4a8ec0">Earl</text>
+
+        <circle cx="485" cy="448" r="22" fill="rgba(26,74,107,0.4)" stroke="#1A4A6B" stroke-width="2.5" filter="url(#glow)"/>
+        <text x="485" y="445" text-anchor="middle" font-family="Cinzel,serif" font-size="7" fill="#8bb8e4">ISLE OF</text>
+        <text x="485" y="455" text-anchor="middle" font-family="Cinzel,serif" font-size="7" fill="#8bb8e4">DOGS</text>
+
+        <circle cx="545" cy="455" r="16" fill="rgba(26,74,107,0.25)" stroke="#1A4A6B" stroke-width="1.5"/>
+        <text x="545" y="452" text-anchor="middle" font-family="Cinzel,serif" font-size="6.5" fill="#5b9fd4">JONSON</text>
+        <text x="545" y="462" text-anchor="middle" font-family="Cinzel,serif" font-size="6" fill="#4a8ec0">Playwright</text>
+
+        <circle cx="510" cy="492" r="15" fill="rgba(26,74,107,0.25)" stroke="#1A4A6B" stroke-width="1.5"/>
+        <text x="510" y="490" text-anchor="middle" font-family="Cinzel,serif" font-size="6.5" fill="#5b9fd4">NASHE</text>
+        <text x="510" y="500" text-anchor="middle" font-family="Cinzel,serif" font-size="6" fill="#4a8ec0">Playwright</text>
+
+        <circle cx="600" cy="455" r="15" fill="rgba(26,74,107,0.25)" stroke="#1A4A6B" stroke-width="1.5"/>
+        <text x="600" y="452" text-anchor="middle" font-family="Cinzel,serif" font-size="6.5" fill="#5b9fd4">MARLOWE</text>
+        <text x="600" y="462" text-anchor="middle" font-family="Cinzel,serif" font-size="6" fill="#4a8ec0">Playwright</text>
+
+        <circle cx="640" cy="490" r="15" fill="rgba(26,74,107,0.25)" stroke="#1A4A6B" stroke-width="1.5"/>
+        <text x="640" y="487" text-anchor="middle" font-family="Cinzel,serif" font-size="6.5" fill="#5b9fd4">KYD</text>
+        <text x="640" y="497" text-anchor="middle" font-family="Cinzel,serif" font-size="6" fill="#4a8ec0">Scrivener</text>
+
+        <circle cx="660" cy="432" r="16" fill="rgba(26,74,107,0.25)" stroke="#1A4A6B" stroke-width="1.5"/>
+        <text x="660" y="429" text-anchor="middle" font-family="Cinzel,serif" font-size="6" fill="#5b9fd4">PEMBROKE'S</text>
+        <text x="660" y="439" text-anchor="middle" font-family="Cinzel,serif" font-size="6" fill="#5b9fd4">MEN</text>
+
+        <circle cx="670" cy="458" r="14" fill="rgba(26,74,107,0.2)" stroke="#1A4A6B" stroke-width="1.5"/>
+        <text x="670" y="456" text-anchor="middle" font-family="Cinzel,serif" font-size="6.5" fill="#5b9fd4">DE VERE</text>
+        <text x="670" y="466" text-anchor="middle" font-family="Cinzel,serif" font-size="5.5" fill="#4a8ec0">Oxford</text>
+
+        <circle cx="695" cy="492" r="15" fill="rgba(26,74,107,0.2)" stroke="#1A4A6B" stroke-width="1.5"/>
+        <text x="695" y="489" text-anchor="middle" font-family="Cinzel,serif" font-size="6.5" fill="#5b9fd4">H. HERBERT</text>
+        <text x="695" y="499" text-anchor="middle" font-family="Cinzel,serif" font-size="5.5" fill="#4a8ec0">Pembroke</text>
+
+        <circle cx="456" cy="340" r="14" fill="rgba(26,74,107,0.2)" stroke="#1A4A6B" stroke-width="1.5"/>
+        <text x="456" y="337" text-anchor="middle" font-family="Cinzel,serif" font-size="6" fill="#5b9fd4">PRIVY</text>
+        <text x="456" y="347" text-anchor="middle" font-family="Cinzel,serif" font-size="6" fill="#5b9fd4">COUNCIL</text>
+
+        <circle cx="478" cy="372" r="14" fill="rgba(26,74,107,0.2)" stroke="#1A4A6B" stroke-width="1.5"/>
+        <text x="478" y="369" text-anchor="middle" font-family="Cinzel,serif" font-size="6.5" fill="#5b9fd4">TOPCLIFFE</text>
+        <text x="478" y="379" text-anchor="middle" font-family="Cinzel,serif" font-size="5.5" fill="#4a8ec0">Inquisitor</text>
+
+        <circle cx="445" cy="310" r="13" fill="rgba(74,122,74,0.2)" stroke="#4A7A4A" stroke-width="1.5"/>
+        <text x="445" y="307" text-anchor="middle" font-family="Cinzel,serif" font-size="6" fill="#7ab87a">W. CECIL</text>
+        <text x="445" y="317" text-anchor="middle" font-family="Cinzel,serif" font-size="5.5" fill="#5aa05a">Burghley</text>
+      </svg>
+    </div>
+    <p class="caption">Fig. 1. Full network graph. Node size indicates degree centrality. Bridge nodes (green) connect across network boundaries. Dashed edges represent interpretive relationships (certainty 0.7); solid edges are evidentiary (certainty 1.0). The highlighted white path traces the key three-step evidentiary connection: Bacon → Isle of Dogs → Cecil → Działyński.</p>
+  </section>
+
+  <!-- KEY PATH -->
+  <section>
+    <div class="section-title">Figure 2 — The Key Evidentiary Path</div>
+    <div class="path-box">
+      <div class="path-title">Shortest Evidentiary Path: Bacon → Działyński (3 steps, certainty 1.0)</div>
+      <div class="path-chain">
+        <div class="path-node-wrap">
+          <div class="path-node" style="border-color:#1A4A6B; color:#5b9fd4;">FRANCIS BACON</div>
+          <span class="path-label">Essex's Secretary</span>
+        </div>
+        <span class="path-arrow">→</span>
+        <div class="path-node-wrap">
+          <div class="path-node" style="border-color:#1A4A6B; color:#8bb8e4;">ISLE OF DOGS</div>
+          <span class="path-label">HELD_COPY_OF</span>
+        </div>
+        <span class="path-arrow">→</span>
+        <div class="path-node-wrap">
+          <div class="path-node" style="border-color:#4A7A4A; color:#7ab87a;">ROBERT CECIL</div>
+          <span class="path-label">REPORTED_TO_PRIVY_COUNCIL</span>
+        </div>
+        <span class="path-arrow">→</span>
+        <div class="path-node-wrap">
+          <div class="path-node" style="border-color:#8B1A1A; color:#e07070;">PAWEŁ DZIAŁYŃSKI</div>
+          <span class="path-label">INTERROGATED</span>
+        </div>
+      </div>
+    </div>
+    <p class="caption">Fig. 2. The three-step evidentiary path connecting the Essex theatrical network to the Polish diplomatic crisis, via Robert Cecil as bridge node. All three edges carry certainty 1.0. Sources: Northumberland MS (Donaldson 2011, 120); Cecil Papers 54/20 (Teramura 2017, 47); Bałuk-Ulewiczowa 2017, 530.</p>
+  </section>
+
+  <!-- FIGURE 3: BRIDGE NODES & CROSS-NETWORK CONNECTIONS -->
+  <section>
+    <div class="section-title">Figure 3 — Cross-Network Connections (13 Inter-Network Edges)</div>
+    <div class="network-container">
+      <svg viewBox="0 0 900 320" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arrow2" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L7,3 z" fill="#d4af37" opacity="0.8"/>
+          </marker>
+          <marker id="arrow2g" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L7,3 z" fill="#888"/>
+          </marker>
+        </defs>
+
+        <!-- Three columns -->
+        <rect x="20" y="20" width="240" height="280" rx="4" fill="rgba(139,26,26,0.06)" stroke="rgba(139,26,26,0.2)" stroke-width="1"/>
+        <text x="140" y="42" text-anchor="middle" font-family="Cinzel,serif" font-size="9" fill="rgba(139,26,26,0.7)" letter-spacing="2">POLISH</text>
+
+        <rect x="330" y="20" width="240" height="280" rx="4" fill="rgba(196,150,10,0.06)" stroke="rgba(196,150,10,0.2)" stroke-width="1"/>
+        <text x="450" y="42" text-anchor="middle" font-family="Cinzel,serif" font-size="9" fill="rgba(196,150,10,0.7)" letter-spacing="2">ROMAN–SPANISH</text>
+
+        <rect x="640" y="20" width="240" height="280" rx="4" fill="rgba(26,74,107,0.06)" stroke="rgba(26,74,107,0.2)" stroke-width="1"/>
+        <text x="760" y="42" text-anchor="middle" font-family="Cinzel,serif" font-size="9" fill="rgba(26,74,107,0.7)" letter-spacing="2">PEMBROKE</text>
+
+        <!-- Polish nodes -->
+        <circle cx="140" cy="90" r="18" fill="rgba(139,26,26,0.3)" stroke="#8B1A1A" stroke-width="1.5"/>
+        <text x="140" y="88" text-anchor="middle" font-family="Cinzel,serif" font-size="7" fill="#e07070">SIGISMUND</text>
+        <text x="140" y="98" text-anchor="middle" font-family="Cinzel,serif" font-size="6.5" fill="#c06060">III</text>
+
+        <circle cx="90" cy="160" r="18" fill="rgba(139,26,26,0.3)" stroke="#8B1A1A" stroke-width="1.5"/>
+        <text x="90" y="157" text-anchor="middle" font-family="Cinzel,serif" font-size="7" fill="#e07070">DZIAŁYŃSKI</text>
+        <text x="90" y="167" text-anchor="middle" font-family="Cinzel,serif" font-size="6.5" fill="#c06060">Ambassador</text>
+
+        <circle cx="190" cy="160" r="15" fill="rgba(139,26,26,0.2)" stroke="#8B1A1A" stroke-width="1.5"/>
+        <text x="190" y="157" text-anchor="middle" font-family="Cinzel,serif" font-size="6.5" fill="#e07070">POLISH</text>
+        <text x="190" y="167" text-anchor="middle" font-family="Cinzel,serif" font-size="6.5" fill="#e07070">SEJM</text>
+
+        <circle cx="140" cy="240" r="14" fill="rgba(139,26,26,0.2)" stroke="#8B1A1A" stroke-width="1.5"/>
+        <text x="140" y="237" text-anchor="middle" font-family="Cinzel,serif" font-size="6.5" fill="#e07070">MERCURIUS</text>
+        <text x="140" y="247" text-anchor="middle" font-family="Cinzel,serif" font-size="6" fill="#c06060">Sarmaticus</text>
+
+        <!-- Roman-Spanish nodes -->
+        <circle cx="420" cy="90" r="17" fill="rgba(196,150,10,0.3)" stroke="#C4960A" stroke-width="1.5"/>
+        <text x="420" y="87" text-anchor="middle" font-family="Cinzel,serif" font-size="7" fill="#d4a520">CAIETANI</text>
+        <text x="420" y="97" text-anchor="middle" font-family="Cinzel,serif" font-size="6.5" fill="#b89018">Nuncio</text>
+
+        <circle cx="480" cy="160" r="17" fill="rgba(196,150,10,0.3)" stroke="#C4960A" stroke-width="1.5"/>
+        <text x="480" y="157" text-anchor="middle" font-family="Cinzel,serif" font-size="7" fill="#d4a520">MENDOZA</text>
+        <text x="480" y="167" text-anchor="middle" font-family="Cinzel,serif" font-size="6.5" fill="#b89018">Ambassador</text>
+
+        <circle cx="380" cy="220" r="15" fill="rgba(196,150,10,0.2)" stroke="#C4960A" stroke-width="1.5"/>
+        <text x="380" y="217" text-anchor="middle" font-family="Cinzel,serif" font-size="6.5" fill="#d4a520">PHILIP III</text>
+        <text x="380" y="227" text-anchor="middle" font-family="Cinzel,serif" font-size="6" fill="#b89018">Spain</text>
+
+        <circle cx="490" cy="260" r="15" fill="rgba(196,150,10,0.2)" stroke="#C4960A" stroke-width="1.5"/>
+        <text x="490" y="257" text-anchor="middle" font-family="Cinzel,serif" font-size="6.5" fill="#d4a520">CATESBY</text>
+        <text x="490" y="267" text-anchor="middle" font-family="Cinzel,serif" font-size="6" fill="#b89018">Conspirator</text>
+
+        <!-- Pembroke nodes -->
+        <circle cx="720" cy="90" r="18" fill="rgba(26,74,107,0.35)" stroke="#1A4A6B" stroke-width="1.5"/>
+        <text x="720" y="87" text-anchor="middle" font-family="Cinzel,serif" font-size="7" fill="#5b9fd4">ELIZABETH I</text>
+        <text x="720" y="97" text-anchor="middle" font-family="Cinzel,serif" font-size="6.5" fill="#4a8ec0">Queen</text>
+
+        <circle cx="800" cy="160" r="18" fill="rgba(74,122,74,0.35)" stroke="#4A7A4A" stroke-width="2"/>
+        <text x="800" y="157" text-anchor="middle" font-family="Cinzel,serif" font-size="7" fill="#7ab87a">R. CECIL</text>
+        <text x="800" y="167" text-anchor="middle" font-family="Cinzel,serif" font-size="6.5" fill="#5aa05a">Bridge</text>
+
+        <circle cx="720" cy="230" r="16" fill="rgba(26,74,107,0.25)" stroke="#1A4A6B" stroke-width="1.5"/>
+        <text x="720" y="227" text-anchor="middle" font-family="Cinzel,serif" font-size="6.5" fill="#5b9fd4">ISLE OF</text>
+        <text x="720" y="237" text-anchor="middle" font-family="Cinzel,serif" font-size="6.5" fill="#5b9fd4">DOGS</text>
+
+        <circle cx="820" cy="260" r="14" fill="rgba(74,122,74,0.25)" stroke="#4A7A4A" stroke-width="1.5"/>
+        <text x="820" y="257" text-anchor="middle" font-family="Cinzel,serif" font-size="6.5" fill="#7ab87a">R. POLEY</text>
+        <text x="820" y="267" text-anchor="middle" font-family="Cinzel,serif" font-size="6" fill="#5aa05a">Informant</text>
+
+        <!-- Cross-network edges -->
+        <!-- Polish → Roman-Spanish -->
+        <line x1="210" y1="155" x2="325" y2="155" stroke="#d4af37" stroke-width="1.5" opacity="0.7" marker-end="url(#arrow2)"/>
+        <!-- Mendoza → Sigismund -->
+        <line x1="465" y1="152" x2="210" y2="100" stroke="#d4af37" stroke-width="1.5" opacity="0.6" marker-end="url(#arrow2)"/>
+        <!-- Caietani → Sejm -->
+        <line x1="410" y1="98" x2="205" y2="155" stroke="#d4af37" stroke-width="1.5" opacity="0.6" marker-end="url(#arrow2)"/>
+        <!-- Caietani → Mercurius -->
+        <line x1="415" y1="105" x2="193" y2="232" stroke="#d4af37" stroke-width="1.5" opacity="0.5" marker-end="url(#arrow2)"/>
+        <!-- Działyński → Elizabeth -->
+        <line x1="108" y1="152" x2="634" y2="95" stroke="#d4af37" stroke-width="2" opacity="0.85" marker-end="url(#arrow2)"/>
+        <!-- Sigismund → Elizabeth (×2) -->
+        <line x1="158" y1="82" x2="634" y2="86" stroke="#d4af37" stroke-width="1.5" opacity="0.5" marker-end="url(#arrow2)"/>
+        <!-- Cecil → Działyński -->
+        <line x1="784" y1="152" x2="216" y2="158" stroke="#4A7A4A" stroke-width="2" opacity="0.9" marker-end="url(#arrow2)"/>
+        <!-- Poley → Jonson (bridge) -->
+        <line x1="806" y1="253" x2="738" y2="238" stroke="#4A7A4A" stroke-width="1.5" opacity="0.8" marker-end="url(#arrow2)"/>
+        <!-- Catesby → Essex (bridge) -->
+        <line x1="480" y1="252" x2="634" y2="230" stroke="#d4af37" stroke-width="1.5" opacity="0.6" marker-end="url(#arrow2)"/>
+        <!-- Catesby/Wintour → Philip III (in network) -->
+        <line x1="366" y1="213" x2="380" y2="215" stroke="#d4af37" stroke-width="1.5" opacity="0.6"/>
+        <!-- Interpretive: Caietani → Działyński -->
+        <line x1="408" y1="100" x2="107" y2="152" stroke="#888" stroke-width="1.5" stroke-dasharray="5,3" opacity="0.6" marker-end="url(#arrow2g)"/>
+        <!-- Interpretive: Essex → Pembroke's Men -->
+        <line x1="600" y1="220" x2="638" y2="225" stroke="#888" stroke-width="1.5" stroke-dasharray="5,3" opacity="0.6" marker-end="url(#arrow2g)"/>
+
+        <!-- Edge count labels -->
+        <text x="270" y="148" text-anchor="middle" font-family="Cormorant Garamond,serif" font-size="8" fill="#d4af37" font-style="italic">5 edges</text>
+        <text x="450" y="108" text-anchor="middle" font-family="Cormorant Garamond,serif" font-size="8" fill="#d4af37" font-style="italic" transform="rotate(-8,450,108)">diplomatic</text>
+      </svg>
+    </div>
+    <p class="caption">Fig. 3. Cross-network connections only. Thirteen inter-network edges: five between Roman-Spanish and Polish networks (diplomatic coordination); four between Polish and Pembroke networks (Cecil as interrogator); three bridge_ac edges through Poley; one interpretive edge (Essex–Pembroke's Men). Robert Cecil appears as bridge node across all three network boundaries.</p>
+  </section>
+
+  <!-- TABLE 1: DEGREE CENTRALITY -->
+  <section>
+    <div class="section-title">Table 1 — Degree Centrality Analysis (Top 15 Nodes)</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Node</th>
+          <th>Network</th>
+          <th>Degree</th>
+          <th>Role in Campaign</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Paweł Działyński</td>
+          <td><span class="tag tag-polish">Polish</span></td>
+          <td>7</td>
+          <td>Highest centrality — convergence point of all three networks</td>
+        </tr>
+        <tr>
+          <td>Isle of Dogs</td>
+          <td><span class="tag tag-pembroke">Pembroke</span></td>
+          <td>6</td>
+          <td>Documentary nexus connecting theatrical and diplomatic crises</td>
+        </tr>
+        <tr>
+          <td>Pembroke's Men</td>
+          <td><span class="tag tag-pembroke">Pembroke</span></td>
+          <td>6</td>
+          <td>Theatrical infrastructure — activated in Phase Two</td>
+        </tr>
+        <tr>
+          <td>Ben Jonson</td>
+          <td><span class="tag tag-pembroke">Pembroke</span></td>
+          <td>5</td>
+          <td>Co-author of Isle of Dogs; imprisoned with Poley</td>
+        </tr>
+        <tr>
+          <td>Sigismund III</td>
+          <td><span class="tag tag-polish">Polish</span></td>
+          <td>5</td>
+          <td>Origin point of legitimate casus belli</td>
+        </tr>
+        <tr>
+          <td>Francis Bacon</td>
+          <td><span class="tag tag-pembroke">Pembroke</span></td>
+          <td>4</td>
+          <td>Essex's secretary; holder of the only surviving Isle of Dogs fragment</td>
+        </tr>
+        <tr>
+          <td>Robert Devereux (Essex)</td>
+          <td><span class="tag tag-pembroke">Pembroke</span></td>
+          <td>4</td>
+          <td>Factional link between Pembroke network and Gunpowder plotters</td>
+        </tr>
+        <tr>
+          <td>Cardinal Caietani</td>
+          <td><span class="tag tag-roman">Roman–Spanish</span></td>
+          <td>4</td>
+          <td>Papal nuncio; coordinated at Sejm; forwarded Mercurius to Rome</td>
+        </tr>
+        <tr>
+          <td>Richard Topcliffe</td>
+          <td><span class="tag tag-pembroke">Pembroke</span></td>
+          <td>4</td>
+          <td>Privy Council's informant on Isle of Dogs</td>
+        </tr>
+        <tr>
+          <td>Thomas Nashe</td>
+          <td><span class="tag tag-pembroke">Pembroke</span></td>
+          <td>4</td>
+          <td>Co-author; fled London after suppression</td>
+        </tr>
+        <tr>
+          <td>Robert Catesby</td>
+          <td><span class="tag tag-roman">Roman–Spanish</span></td>
+          <td>4</td>
+          <td>Plot leader; Essex rebellion participant; Spain contact</td>
+        </tr>
+        <tr>
+          <td>Francisco de Mendoza</td>
+          <td><span class="tag tag-roman">Roman–Spanish</span></td>
+          <td>3</td>
+          <td>Spanish ambassador at Polish Sejm; requested action against England</td>
+        </tr>
+        <tr>
+          <td>Robert Cecil</td>
+          <td><span class="tag tag-bridge">Bridge</span></td>
+          <td>3</td>
+          <td>Key bridge node: interrogated Działyński, suppressed Isle of Dogs, managed succession, directed plot investigation</td>
+        </tr>
+        <tr>
+          <td>Robert Poley</td>
+          <td><span class="tag tag-bridge">Bridge</span></td>
+          <td>3</td>
+          <td>Intelligence asset: present at Marlowe's death; imprisoned with Jonson; active into Jacobean period</td>
+        </tr>
+        <tr>
+          <td>Polish Sejm 1597</td>
+          <td><span class="tag tag-polish">Polish</span></td>
+          <td>3</td>
+          <td>Forum where Polish, Spanish and papal interests converged</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="caption" style="margin-top:10px;">Table 1. Degree centrality for all nodes with degree ≥ 3. Calculated from Neo4j database (session 2, April 24, 2026), including all edges with certainty ≥ 0.7.</p>
+  </section>
+
+  <!-- TABLE 2: SPLIT DEGREE -->
+  <section>
+    <div class="section-title">Table 2 — Split Degree Analysis: Evidentiary vs. Interpretive</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Node</th>
+          <th>Network</th>
+          <th>Evidentiary</th>
+          <th>Interpretive</th>
+          <th>Significance</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Paweł Działyński</td>
+          <td><span class="tag tag-polish">Polish</span></td>
+          <td><span class="tag tag-ev">5</span></td>
+          <td><span class="tag tag-int">1</span></td>
+          <td>Highest combined degree; central to all three phases</td>
+        </tr>
+        <tr>
+          <td>Sigismund III</td>
+          <td><span class="tag tag-polish">Polish</span></td>
+          <td><span class="tag tag-ev">5</span></td>
+          <td><span class="tag tag-int">0</span></td>
+          <td>Purely evidentiary — origin of legitimate casus belli</td>
+        </tr>
+        <tr>
+          <td>Cardinal Caietani</td>
+          <td><span class="tag tag-roman">Roman–Spanish</span></td>
+          <td><span class="tag tag-ev">3</span></td>
+          <td><span class="tag tag-int">1</span></td>
+          <td>One interpretive edge: coordination with Działyński (Vallicelliana MS)</td>
+        </tr>
+        <tr>
+          <td>Robert Cecil</td>
+          <td><span class="tag tag-bridge">Bridge</span></td>
+          <td><span class="tag tag-ev">3</span></td>
+          <td><span class="tag tag-int">0</span></td>
+          <td>All connections evidentiary; positioned at every key intersection</td>
+        </tr>
+        <tr>
+          <td>Robert Poley</td>
+          <td><span class="tag tag-bridge">Bridge</span></td>
+          <td><span class="tag tag-ev">3</span></td>
+          <td><span class="tag tag-int">0</span></td>
+          <td>Three distinct evidentiary links spanning 1593–1597</td>
+        </tr>
+        <tr>
+          <td>Robert Devereux (Essex)</td>
+          <td><span class="tag tag-pembroke">Pembroke</span></td>
+          <td><span class="tag tag-ev">2</span></td>
+          <td><span class="tag tag-int">1</span></td>
+          <td>One interpretive edge: connection to Pembroke's Men (Alnwick MS)</td>
+        </tr>
+        <tr>
+          <td>Robert Catesby</td>
+          <td><span class="tag tag-roman">Roman–Spanish</span></td>
+          <td><span class="tag tag-ev">3</span></td>
+          <td><span class="tag tag-int">0</span></td>
+          <td>Three evidentiary connections: Essex rebellion, Spain, Wintour</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="caption" style="margin-top:10px;">Table 2. Evidentiary vs. interpretive split for key nodes. The database contains only two interpretive edges total; all other relationships are archivally documented. Direct output from Neo4j split-degree query (certainty ≥ 0.7).</p>
+  </section>
+
+  <!-- TABLE 3: CROSS-NETWORK EDGES -->
+  <section>
+    <div class="section-title">Table 3 — Cross-Network Edges (13 Inter-Network Connections)</div>
+    <table>
+      <thead>
+        <tr>
+          <th>From</th>
+          <th>Relationship</th>
+          <th>To</th>
+          <th>Networks</th>
+          <th>Layer</th>
+          <th>Year</th>
+          <th>Source</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Sigismund III</td>
+          <td>SENT_LETTERS_TO (×2)</td>
+          <td>Elizabeth I</td>
+          <td>Polish → Pembroke</td>
+          <td><span class="tag tag-ev">Evidentiary</span></td>
+          <td>1591, 1595</td>
+          <td>Talbot, Elementa IV</td>
+        </tr>
+        <tr>
+          <td>Działyński</td>
+          <td>DELIVERED_ORATION_TO</td>
+          <td>Elizabeth I</td>
+          <td>Polish → Pembroke</td>
+          <td><span class="tag tag-ev">Evidentiary</span></td>
+          <td>1597</td>
+          <td>Mercurius Sarmaticus, f.13v</td>
+        </tr>
+        <tr>
+          <td>R. Cecil</td>
+          <td>INTERROGATED</td>
+          <td>Działyński</td>
+          <td>Bridge → Polish</td>
+          <td><span class="tag tag-ev">Evidentiary</span></td>
+          <td>1597</td>
+          <td>Cecil Papers 54/20</td>
+        </tr>
+        <tr>
+          <td>W. Cecil</td>
+          <td>SIGNED_OFFICIAL_REPLY_TO</td>
+          <td>Działyński</td>
+          <td>Bridge → Polish</td>
+          <td><span class="tag tag-ev">Evidentiary</span></td>
+          <td>1597</td>
+          <td>Bałuk-Ulewiczowa, 531</td>
+        </tr>
+        <tr>
+          <td>Caietani</td>
+          <td>ATTENDED</td>
+          <td>Polish Sejm 1597</td>
+          <td>Roman–Spanish → Polish</td>
+          <td><span class="tag tag-ev">Evidentiary</span></td>
+          <td>1597</td>
+          <td>Bałuk-Ulewiczowa, 510</td>
+        </tr>
+        <tr>
+          <td>Mendoza</td>
+          <td>ATTENDED</td>
+          <td>Polish Sejm 1597</td>
+          <td>Roman–Spanish → Polish</td>
+          <td><span class="tag tag-ev">Evidentiary</span></td>
+          <td>1597</td>
+          <td>Bałuk-Ulewiczowa, 510</td>
+        </tr>
+        <tr>
+          <td>Mendoza</td>
+          <td>REQUESTED_FROM</td>
+          <td>Sigismund III</td>
+          <td>Roman–Spanish → Polish</td>
+          <td><span class="tag tag-ev">Evidentiary</span></td>
+          <td>1597</td>
+          <td>Bałuk-Ulewiczowa, 510</td>
+        </tr>
+        <tr>
+          <td>Caietani</td>
+          <td>RECEIVED_COPY_OF</td>
+          <td>Mercurius Sarmaticus</td>
+          <td>Roman–Spanish → Polish</td>
+          <td><span class="tag tag-ev">Evidentiary</span></td>
+          <td>1597</td>
+          <td>Vallicelliana Ms. no.33</td>
+        </tr>
+        <tr>
+          <td>R. Poley</td>
+          <td>PRESENT_AT_DEATH_OF</td>
+          <td>Marlowe</td>
+          <td>Bridge → Pembroke</td>
+          <td><span class="tag tag-ev">Evidentiary</span></td>
+          <td>1593</td>
+          <td>Deptford Inquest, 1593</td>
+        </tr>
+        <tr>
+          <td>R. Poley</td>
+          <td>IMPRISONED_WITH</td>
+          <td>Ben Jonson</td>
+          <td>Bridge → Pembroke</td>
+          <td><span class="tag tag-ev">Evidentiary</span></td>
+          <td>1597</td>
+          <td>Jonson, Epigram 59</td>
+        </tr>
+        <tr>
+          <td>R. Poley</td>
+          <td>WORKED_FOR</td>
+          <td>Privy Council</td>
+          <td>Bridge → Pembroke</td>
+          <td><span class="tag tag-ev">Evidentiary</span></td>
+          <td>1593</td>
+          <td>Nicholl, The Reckoning</td>
+        </tr>
+        <tr>
+          <td>Caietani</td>
+          <td>COORDINATED_WITH</td>
+          <td>Działyński</td>
+          <td>Roman–Spanish → Polish</td>
+          <td><span class="tag tag-int">Interpretive</span></td>
+          <td>1597</td>
+          <td>Vallicelliana MS — Bałuk-Ulewiczowa, 510–511</td>
+        </tr>
+        <tr>
+          <td>Essex</td>
+          <td>CONNECTED_TO</td>
+          <td>Pembroke's Men</td>
+          <td>Pembroke internal</td>
+          <td><span class="tag tag-int">Interpretive</span></td>
+          <td>1597</td>
+          <td>Northumberland MS — Donaldson, 120</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="caption" style="margin-top:10px;">Table 3. All thirteen cross-network edges. Eleven evidentiary (certainty 1.0), two interpretive (certainty 0.7), explicitly flagged. The two interpretive edges represent the study's structural inferences; all other claims rest on primary sources.</p>
+  </section>
+
+  <!-- TIMELINE -->
+  <section>
+    <div class="section-title">Figure 4 — Chronological Timeline of the Three-Phase Campaign, 1591–1605</div>
+    <div class="two-col">
+      <div class="timeline">
+        <div class="timeline-item phase-1">
+          <div class="timeline-year">1591</div>
+          <div class="timeline-event">Twenty-nine attacks on Gdańsk merchant ships in a single month.</div>
+          <div class="timeline-note">Origin of the casus belli. Sigismund III's first letter to Elizabeth.</div>
+        </div>
+        <div class="timeline-item phase-1">
+          <div class="timeline-year">1595</div>
+          <div class="timeline-event">Sigismund III's second letter to Elizabeth I.</div>
+          <div class="timeline-note">No substantive reply received. Diplomatic exhaustion confirmed.</div>
+        </div>
+        <div class="timeline-item phase-1">
+          <div class="timeline-year">1597 — February–March</div>
+          <div class="timeline-event">Polish Sejm convenes at Warsaw. Caietani and Mendoza both present. Działyński appointed ambassador.</div>
+          <div class="timeline-note">Convergence of Polish, Spanish, and papal interests.</div>
+        </div>
+        <div class="timeline-item phase-1">
+          <div class="timeline-year">1597 — August 4</div>
+          <div class="timeline-event"><strong>Phase One.</strong> Greenwich audience. Działyński delivers oration in Latin; withholds title Defensor Fidei. Elizabeth's extemporaneous reply.</div>
+          <div class="timeline-note">Mercurius Sarmaticus circulates to Rome and Madrid.</div>
+        </div>
+        <div class="timeline-item phase-2">
+          <div class="timeline-year">1597 — July–August</div>
+          <div class="timeline-event"><strong>Phase Two.</strong> Isle of Dogs performed at Swan Theatre by Pembroke's Men. Jonson arrested; Nashe flees. Poley imprisoned with Jonson.</div>
+          <div class="timeline-note">Topcliffe reports to Cecil. All London theatres closed.</div>
+        </div>
+        <div class="timeline-item bridge">
+          <div class="timeline-year">1598</div>
+          <div class="timeline-event">Death of Lord Burghley (August 4). Power vacuum at centre of Elizabethan government.</div>
+          <div class="timeline-note">Rational Catholic expectation: succession crisis now imminent.</div>
+        </div>
+      </div>
+      <div class="timeline">
+        <div class="timeline-item bridge">
+          <div class="timeline-year">1601 — February</div>
+          <div class="timeline-event">Essex rebellion fails. Essex executed. Catesby fined four thousand marks. Robert Cecil emerges dominant.</div>
+          <div class="timeline-note">Second pathway to Catholic-friendly succession closed.</div>
+        </div>
+        <div class="timeline-item bridge">
+          <div class="timeline-year">1603 — March</div>
+          <div class="timeline-event">Death of Elizabeth I. Smooth transition to James VI (James I), managed in secret by Cecil.</div>
+          <div class="timeline-note">Catholic expectation of contested succession confounded.</div>
+        </div>
+        <div class="timeline-item bridge">
+          <div class="timeline-year">1603 — Summer</div>
+          <div class="timeline-event">Wintour travels to Spain. Catesby seeks support from Philip III. Promises made; none fulfilled.</div>
+          <div class="timeline-note">Continuity of Spanish connection from 1597 confirmed.</div>
+        </div>
+        <div class="timeline-item bridge">
+          <div class="timeline-year">1604</div>
+          <div class="timeline-event">James I's first parliament renews recusancy fines; rejects toleration.</div>
+          <div class="timeline-note">Final closure of political space. Plot conceived.</div>
+        </div>
+        <div class="timeline-item phase-3">
+          <div class="timeline-year">1605 — November 5</div>
+          <div class="timeline-event"><strong>Phase Three.</strong> Gunpowder Plot discovered. Conspirators (Catesby, Wintour, Wright) arrested or killed. James I survives.</div>
+          <div class="timeline-note">Terminal point of the campaign. Strategic bankruptcy confirmed.</div>
+        </div>
+        <div class="timeline-item phase-3">
+          <div class="timeline-year">1606 onward</div>
+          <div class="timeline-event">Jacobean persecutions. Penal laws tightened. Catholic priests expelled. Catholicism permanently excluded as political force.</div>
+          <div class="timeline-note">The campaign created precisely the outcome it sought to prevent.</div>
+        </div>
+      </div>
+    </div>
+    <p class="caption" style="margin-top:16px;">Fig. 4. Chronological timeline of the three-phase campaign. Phase One nodes (red marker) = Polish-diplomatic. Phase Two nodes (blue marker) = Pembroke-theatrical. Phase Three nodes (gold marker) = Gunpowder. Bridge nodes (green, filled) = structural transitions between phases.</p>
+  </section>
+
+</div>
+</body>
+</html>
