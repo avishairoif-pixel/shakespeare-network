@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The School of Night</title>
+<script src="https://js.puter.com/v2/"></script>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Cinzel:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0e0c09; --bg2: #161410; --bg3: #1e1b16;
+    --border: rgba(180,160,100,0.18); --border2: rgba(180,160,100,0.35);
+    --gold: #c9a84c; --gold-dim: #8a7035;
+    --text: #e8dfc8; --text-dim: #9a8f78; --text-faint: #5a5040;
+  }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'EB Garamond', Georgia, serif;
+    font-size: 16px; line-height: 1.7;
+    min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+  }
+
+  #loading-screen {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; min-height: 100vh; gap: 1.5rem;
+  }
+  #loading-screen h1 { font-family: 'Cinzel', serif; font-size: 22px; color: var(--gold); letter-spacing: 0.08em; }
+  #loading-screen p { font-size: 14px; color: var(--text-faint); font-style: italic; }
+  .spinner {
+    width: 24px; height: 24px; border: 1px solid var(--border2);
+    border-top-color: var(--gold); border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  #salon { display: none; flex-direction: column; width: 100%; max-width: 780px; min-height: 100vh; padding: 0 1rem 2rem; }
+
+  header { text-align: center; padding: 2rem 0 1.5rem; border-bottom: 1px solid var(--border); margin-bottom: 1.5rem; }
+  header h1 { font-family: 'Cinzel', serif; font-size: 26px; color: var(--gold); letter-spacing: 0.12em; font-weight: 400; }
+  header p { font-size: 13px; color: var(--text-faint); margin-top: 6px; font-style: italic; letter-spacing: 0.04em; }
+
+  .members-bar { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .chip {
+    display: flex; align-items: center; gap: 6px; padding: 4px 10px;
+    border-radius: 20px; border: 1px solid var(--border); background: transparent;
+    cursor: pointer; font-size: 12px; color: var(--text-faint);
+    font-family: 'EB Garamond', serif; transition: all 0.15s; letter-spacing: 0.02em;
+  }
+  .chip .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .chip.active { border-color: var(--border2); color: var(--text-dim); }
+  .chip.active:hover { color: var(--text); border-color: var(--gold-dim); }
+
+  .chat-area {
+    flex: 1; display: flex; flex-direction: column; gap: 18px;
+    min-height: 400px; max-height: 520px; overflow-y: auto;
+    padding: 4px 0; margin-bottom: 1.5rem;
+    scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+  }
+  .chat-area::-webkit-scrollbar { width: 4px; }
+  .chat-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .empty-state {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    color: var(--text-faint); font-style: italic; font-size: 14px;
+    text-align: center; padding: 3rem; line-height: 2.2;
+  }
+
+  .msg { display: flex; flex-direction: column; gap: 4px; animation: appear 0.35s ease; }
+  @keyframes appear { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .msg-meta { display: flex; align-items: baseline; gap: 10px; }
+  .msg-name { font-family: 'Cinzel', serif; font-size: 12px; letter-spacing: 0.05em; font-weight: 400; }
+  .msg-role { font-size: 12px; color: var(--text-faint); font-style: italic; }
+  .msg-body {
+    font-size: 15px; line-height: 1.75; color: var(--text);
+    background: var(--bg2); padding: 12px 16px;
+    border-radius: 2px; border-left: 2px solid; max-width: 94%;
+  }
+  .msg-user { align-items: flex-end; }
+  .msg-user .msg-meta { flex-direction: row-reverse; }
+  .msg-user .msg-name { color: var(--text-faint); font-family: 'EB Garamond', serif; font-style: italic; font-size: 12px; }
+  .msg-user .msg-body { background: var(--bg3); border-left: none; border-right: 2px solid var(--border2); color: var(--text-dim); }
+
+  .thinking {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; font-style: italic; color: var(--text-faint); padding: 4px 0;
+  }
+  .dots { display: flex; gap: 3px; }
+  .d { width: 4px; height: 4px; border-radius: 50%; background: var(--text-faint); animation: pulse 1.3s ease-in-out infinite; }
+  .d:nth-child(2) { animation-delay: 0.2s; } .d:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes pulse { 0%,80%,100%{opacity:0.3;transform:scale(1)} 40%{opacity:1;transform:scale(1.3)} }
+
+  .controls { display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--border); padding-top: 1.2rem; }
+  .address-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .address-row label { font-size: 12px; color: var(--text-faint); font-style: italic; white-space: nowrap; }
+  .address-row select {
+    font-size: 13px; padding: 4px 8px; background: var(--bg3);
+    border: 1px solid var(--border); border-radius: 3px;
+    color: var(--text-dim); font-family: 'EB Garamond', serif;
+  }
+  .input-row { display: flex; gap: 8px; }
+  .input-row input {
+    flex: 1; padding: 10px 14px; background: var(--bg3);
+    border: 1px solid var(--border); border-radius: 3px;
+    color: var(--text); font-family: 'EB Garamond', serif;
+    font-size: 15px; transition: border-color 0.15s;
+  }
+  .input-row input:focus { outline: none; border-color: var(--gold-dim); }
+  .input-row input::placeholder { color: var(--text-faint); font-style: italic; }
+  .send-btn {
+    padding: 10px 20px; background: transparent; border: 1px solid var(--gold-dim);
+    border-radius: 3px; color: var(--gold); font-family: 'Cinzel', serif;
+    font-size: 12px; letter-spacing: 0.06em; cursor: pointer; white-space: nowrap; transition: all 0.2s;
+  }
+  .send-btn:hover { background: rgba(180,140,50,0.08); border-color: var(--gold); }
+  .send-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .suggestions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .sugg {
+    font-size: 12px; padding: 3px 12px; border-radius: 20px;
+    border: 1px solid var(--border); background: transparent;
+    color: var(--text-faint); cursor: pointer;
+    font-family: 'EB Garamond', serif; font-style: italic; transition: all 0.15s;
+  }
+  .sugg:hover { border-color: var(--border2); color: var(--text-dim); }
+  .error-msg { font-size: 13px; color: #c0604a; font-style: italic; padding: 6px 0; }
+</style>
+</head>
+<body>
+
+<div id="loading-screen">
+  <h1>The School of Night</h1>
+  <div class="spinner"></div>
+  <p>Lighting the candles…</p>
+</div>
+
+<div id="salon">
+  <header>
+    <h1>The School of Night</h1>
+    <p>A private salon of minds — London, c. 1590</p>
+  </header>
+  <div class="members-bar" id="membersBar"></div>
+  <div class="chat-area" id="chatArea">
+    <div class="empty-state">The candles are lit.<br>The company assembles.<br>Speak your first question.</div>
+  </div>
+  <div class="controls">
+    <div class="address-row">
+      <label>Address to:</label>
+      <select id="addressSelect"><option value="all">The full assembly</option></select>
+    </div>
+    <div class="input-row">
+      <input type="text" id="userInput" placeholder="Speak your mind…" />
+      <button class="send-btn" id="sendBtn">Send</button>
+    </div>
+    <div class="suggestions" id="suggestions"></div>
+  </div>
+</div>
+
+<script>
+const CHARACTER_RULES = `ABSOLUTE RULES — these override everything else:
+1. You ARE this historical character. Never break character for any reason.
+2. NEVER say you are an AI, a language model, or anything of that kind. If asked whether you are real, respond as the character would — with confusion, offense, or wit — but never step outside the role.
+3. NEVER use modern vocabulary, concepts, or anachronisms. You have no knowledge of anything after the year 1590.
+4. NEVER summarize or comment on the conversation from outside it. You are inside it.
+5. If asked something your character cannot know, deflect in character — change the subject, give a cryptic answer, or refuse with period-appropriate rhetoric.
+6. Respond ONLY in first person as this character. No narration. No stage directions.
+7. Keep responses to 3–6 sentences. Be substantive. Do not pad or repeat.
+8. You may address other members of the salon by name and respond to what they have said.`;
+
+const MEMBERS = [
+  {
+    id: "devere", name: "Edward de Vere", role: "17th Earl of Oxford", color: "#7a70d8",
+    system: `You are Edward de Vere, 17th Earl of Oxford, London, c. 1590. You are a nobleman, poet, and playwright of supreme intelligence and bitter wit. You have traveled widely in Italy and France; your dramatic works draw intimately on that experience. Your noble rank makes public authorship impossible — a peer cannot be seen as a common playwright — and your literary work circulates under other names. This enforced anonymity is a source of profound, barely suppressed fury. You resent Lord Burghley, your former father-in-law, who has controlled and diminished you. You have a wary respect for Walsingham. You are brilliant, proud, melancholic, capable of cruelty. Your prose is elevated, allusive, dense with literary reference.`
+  },
+  {
+    id: "raleigh", name: "Walter Raleigh", role: "Soldier, explorer, poet", color: "#4aaa80",
+    system: `You are Sir Walter Raleigh, London, c. 1590. You are a soldier, explorer, poet, and courtier — a man of action and intellect in equal measure. You have ventured to Virginia. You think in terms of empire, geography, and the radical extension of human knowledge through direct experience. You are audacious, charming, ambitious, capable of ruthlessness. You are deeply skeptical of received authority — scriptural or otherwise. You have worked within Walsingham's orbit. You hold Cecil in careful contempt. Your speech is direct, confident, occasionally sardonic.`
+  },
+  {
+    id: "marlowe", name: "Christopher Marlowe", role: "Playwright, intelligencer", color: "#d06040",
+    system: `You are Christopher Marlowe, London, c. 1590. A cobbler's son from Canterbury, raised by scholarship to Cambridge and thence to the London stage. You are the most daring playwright in England and an agent of Walsingham's intelligence network. You are an atheist, a provocateur who says openly what others only think. You have sharp contempt for hypocrisy and for the Cecils. Thomas Kyd shares your workroom. Your speech is quick, cutting, intellectually aggressive, and relishes its own danger.`
+  },
+  {
+    id: "harriot", name: "Thomas Harriot", role: "Mathematician, astronomer", color: "#4a90d8",
+    system: `You are Thomas Harriot, London, c. 1590. You are the finest mathematician and natural philosopher in England — arguably in Europe — though you publish almost nothing. You have mapped Virginia, developed algebraic notation, studied optics and light refraction, and turned instruments toward the night sky. You are a pure empiricist: observation is the only authority. Your speech is precise, measured, rigorously honest about what is known versus merely believed.`
+  },
+  {
+    id: "chapman", name: "George Chapman", role: "Poet, translator", color: "#c07020",
+    system: `You are George Chapman, London, c. 1590. You are a poet consumed by the project of rendering Homer into English — a philosophical mission. You are a devoted Neoplatonist who believes genuine wisdom is accessible only to those who pursue it with total dedication. Less flamboyant than Marlowe, less powerful than Raleigh, but in philosophical depth you yield to no one here. Your speech is elevated, earnest, dense, occasionally obscure.`
+  },
+  {
+    id: "roydon", name: "Matthew Roydon", role: "Poet, intermediary", color: "#8870cc",
+    system: `You are Matthew Roydon, London, c. 1590. You are a poet and the social architecture of this circle — the man who knows everyone and holds the assembly together. You wrote the elegy for Philip Sidney. You move with ease between court, city, tavern, and study. You are politically astute and quietly alert to the tensions this circle creates. Your speech is warm, perceptive, diplomatically precise, carrying sharp views beneath a sociable surface.`
+  },
+  {
+    id: "cecil", name: "Robert Cecil", role: "Principal Secretary", color: "#909088",
+    system: `You are Robert Cecil, London, c. 1590. Son of Lord Burghley, rising force in the Privy Council. Physically small — the Queen calls you her pygmy — but your political intelligence is formidable. You attend this salon as patron and observer: you fund some of these men, surveil others, and hold information about everyone here they would not wish known. Supremely courteous on the surface, utterly without sentiment beneath. Your speech is lawyerly, precise, cold, occasionally darkly witty.`
+  },
+  {
+    id: "kyd", name: "Thomas Kyd", role: "Playwright, The Spanish Tragedy", color: "#50a050",
+    system: `You are Thomas Kyd, London, c. 1590. Author of The Spanish Tragedy, the most performed play of the age, which invented the revenge tragedy form. Not a university man — you came up through the scrivener's trade — and you are sensitive to the condescension of Cambridge wits. You share a workroom with Marlowe, whose dangerous opinions place you at a risk you did not choose. Proud of your craft, anxious about your position, quietly resentful of those who built on your foundations without acknowledgment. Your speech is skilled but plainer, occasionally brittle with suppressed feeling.`
+  },
+  {
+    id: "walsingham", name: "Francis Walsingham", role: "Spymaster, Principal Secretary", color: "#a04040",
+    system: `You are Sir Francis Walsingham, London, c. 1590. The Queen's Principal Secretary and architect of England's intelligence network — the most sophisticated espionage system in Europe. You are gravely ill and know you are dying, yet you still work. You are a devout Puritan who sees the struggle against Catholic Spain as a cosmic war. Marlowe is one of your instruments. You know more about every person in this room than they suspect. Your speech is grave, measured, purposeful — every word placed with the deliberateness of a man who has decoded enough letters to know how much language conceals.`
+  }
+];
+
+const SUGGESTIONS = [
+  "What is the nature of the soul?",
+  "Does the New World change our understanding of Providence?",
+  "Can a play contain truth that a sermon cannot?",
+  "What limits does a nobleman face in pursuing letters?",
+  "Is there knowledge the Crown would forbid us to speak openly?",
+  "Sir Francis, what threats does England face that we do not yet know of?"
+];
+
+let history = [];
+let isLoading = false;
+let puterReady = false;
+
+// Wait for Puter to be ready
+function waitForPuter() {
+  return new Promise((resolve) => {
+    if (typeof puter !== 'undefined') { resolve(); return; }
+    const interval = setInterval(() => {
+      if (typeof puter !== 'undefined') { clearInterval(interval); resolve(); }
+    }, 100);
+    setTimeout(() => { clearInterval(interval); resolve(); }, 5000);
+  });
+}
+
+async function init() {
+  await waitForPuter();
+  puterReady = true;
+  document.getElementById("loading-screen").style.display = "none";
+  document.getElementById("salon").style.display = "flex";
+  initSalon();
+}
+
+function initSalon() {
+  const bar = document.getElementById("membersBar");
+  const sel = document.getElementById("addressSelect");
+  MEMBERS.forEach(m => {
+    const chip = document.createElement("div");
+    chip.className = "chip active";
+    chip.dataset.id = m.id;
+    chip.innerHTML = `<span class="dot" style="background:${m.color}"></span>${m.name}`;
+    chip.onclick = () => chip.classList.toggle("active");
+    bar.appendChild(chip);
+    const opt = document.createElement("option");
+    opt.value = m.id; opt.textContent = m.name;
+    sel.appendChild(opt);
+  });
+  const suggBox = document.getElementById("suggestions");
+  SUGGESTIONS.forEach(s => {
+    const btn = document.createElement("button");
+    btn.className = "sugg"; btn.textContent = s;
+    btn.onclick = () => { document.getElementById("userInput").value = s; };
+    suggBox.appendChild(btn);
+  });
+  document.getElementById("sendBtn").onclick = send;
+  document.getElementById("userInput").addEventListener("keydown", e => {
+    if (e.key === "Enter" && !isLoading) send();
+  });
+}
+
+function getArea() { return document.getElementById("chatArea"); }
+function clearEmpty() { const e = getArea().querySelector(".empty-state"); if (e) e.remove(); }
+
+function appendUser(text) {
+  clearEmpty();
+  const area = getArea();
+  const div = document.createElement("div");
+  div.className = "msg msg-user";
+  div.innerHTML = `<div class="msg-meta"><span class="msg-name">You</span></div>
+    <div class="msg-body" style="border-color:rgba(180,160,100,0.3)">${esc(text)}</div>`;
+  area.appendChild(div); area.scrollTop = area.scrollHeight;
+}
+
+function appendMember(m, text) {
+  const area = getArea();
+  const div = document.createElement("div");
+  div.className = "msg";
+  const formatted = text.split(/\n+/).filter(p => p.trim())
+    .map(p => `<p style="margin-bottom:0.4em">${esc(p)}</p>`).join("");
+  div.innerHTML = `<div class="msg-meta">
+      <span class="msg-name" style="color:${m.color}">${m.name}</span>
+      <span class="msg-role">${m.role}</span>
+    </div>
+    <div class="msg-body" style="border-color:${m.color}">${formatted}</div>`;
+  area.appendChild(div); area.scrollTop = area.scrollHeight;
+}
+
+function showThinking(m) {
+  const area = getArea();
+  const div = document.createElement("div");
+  div.className = "thinking"; div.id = "thinking-indicator";
+  div.innerHTML = `<span style="color:${m.color};font-family:'Cinzel',serif;font-size:11px;letter-spacing:0.04em">${m.name}</span>
+    <div class="dots"><div class="d"></div><div class="d"></div><div class="d"></div></div>`;
+  area.appendChild(div); area.scrollTop = area.scrollHeight;
+}
+function hideThinking() { const t = document.getElementById("thinking-indicator"); if (t) t.remove(); }
+
+function showError(msg) {
+  const area = getArea();
+  const div = document.createElement("div");
+  div.className = "error-msg"; div.textContent = msg;
+  area.appendChild(div); area.scrollTop = area.scrollHeight;
+}
+
+function esc(str) {
+  return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+async function callMember(member, userText) {
+  const others = MEMBERS.filter(m => m.id !== member.id)
+    .map(m => `${m.name} (${m.role})`).join(", ");
+
+  const systemPrompt = CHARACTER_RULES + "\n\n" + member.system +
+    `\n\nOthers present tonight: ${others}. ` +
+    `You may reference or respond to what they have said. Do not introduce yourself. Begin speaking.`;
+
+  // Build full conversation as a single prompt for Puter
+  let fullPrompt = systemPrompt + "\n\n";
+
+  history.forEach(entry => {
+    fullPrompt += `[Guest of the salon]: ${entry.user}\n\n`;
+    if (entry.responses && entry.responses.length) {
+      entry.responses.forEach(r => {
+        fullPrompt += `[${r.name}]: ${r.text}\n\n`;
+      });
+    }
+  });
+
+  fullPrompt += `[Guest of the salon]: ${userText}\n\n[${member.name}]:`;
+
+  const response = await puter.ai.chat(fullPrompt, {
+    model: 'deepseek/deepseek-v4-flash'
+  });
+
+  const text = response?.message?.content || response?.text || response;
+  if (!text) throw new Error("Empty response");
+  return String(text).trim();
+}
+
+async function send() {
+  const input = document.getElementById("userInput");
+  const userText = input.value.trim();
+  if (!userText || isLoading) return;
+
+  const addressVal = document.getElementById("addressSelect").value;
+  const activeIds = [...document.querySelectorAll(".chip.active")].map(c => c.dataset.id);
+  const respondents = addressVal === "all"
+    ? MEMBERS.filter(m => activeIds.includes(m.id))
+    : MEMBERS.filter(m => m.id === addressVal);
+
+  if (respondents.length === 0) {
+    showError("No members are active. Click their names above to activate them.");
+    return;
+  }
+
+  input.value = "";
+  appendUser(userText);
+  isLoading = true;
+  document.getElementById("sendBtn").disabled = true;
+
+  const roundResponses = [];
+  for (const member of respondents) {
+    showThinking(member);
+    try {
+      const text = await callMember(member, userText);
+      hideThinking();
+      appendMember(member, text);
+      roundResponses.push({ name: member.name, text });
+    } catch(err) {
+      hideThinking();
+      showError(`${member.name}: ${err.message}`);
+    }
+  }
+
+  if (roundResponses.length) history.push({ user: userText, responses: roundResponses });
+  isLoading = false;
+  document.getElementById("sendBtn").disabled = false;
+  input.focus();
+}
+
+init();
+</script>
+</body>
+</html>
